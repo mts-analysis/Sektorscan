@@ -1,0 +1,239 @@
+{
+ "_doc": "Manually verified earnings dates for 2026-W45 (checked 2026-11-01). kind: IR = company/IR source, secondary = reputable secondary source (dpa-AFX Wochenvorschau via Deutsche Börse live, 'Termine bis 10. November 2026'; StockTitan week calendar 30.10.2026). time_local = release time (only if published), call_time = call/webcast start; tz = IANA zone. Germany on CET (MEZ, UTC+1) since 25.10.2026, US on EST (UTC-5) from 01.11.2026.",
+ "AAPL": {
+  "date": "2026-11-02",
+  "timing": "AMC",
+  "time_local": "13:30",
+  "call_time": "14:00",
+  "tz": "America/Los_Angeles",
+  "kind": "IR",
+  "source": "https://investor.apple.com/investor-relations/event-details/2026/FY-26-Fourth-Quarter-Results/default.aspx",
+  "checked": "2026-11-01",
+  "note": "Call 14:00 PT / 17:00 ET; Release 13:30 PT laut Apple-IR-Ankündigung (MacRumors/iThinkDiff); erste Zahlen mit CEO John Ternus"
+ },
+ "PLTR": {
+  "date": "2026-11-02",
+  "timing": "AMC",
+  "call_time": "17:00",
+  "tz": "America/New_York",
+  "kind": "IR",
+  "source": "https://investors.palantir.com/news-details/2026/Palantir-Announces-Date-of-Third-Quarter-2026-Earnings-Release-and-Webcast",
+  "checked": "2026-11-01"
+ },
+ "AMD": {
+  "date": "2026-11-03",
+  "timing": "AMC",
+  "call_time": "17:00",
+  "tz": "America/New_York",
+  "kind": "IR",
+  "source": "https://ir.amd.com/news-events/press-releases/detail/1300/amd-to-report-fiscal-third-quarter-2026-financial-results",
+  "checked": "2026-11-01"
+ },
+ "SHOP": {
+  "date": "2026-11-03",
+  "timing": "BMO",
+  "call_time": "08:30",
+  "tz": "America/New_York",
+  "kind": "IR",
+  "source": "https://www.shopify.com/investors/press-releases/shopify-announce-third-quarter-2026-financial-results",
+  "checked": "2026-11-01"
+ },
+ "UBER": {
+  "date": "2026-11-04",
+  "timing": "BMO",
+  "call_time": "08:00",
+  "tz": "America/New_York",
+  "kind": "IR",
+  "source": "https://investor.uber.com/news-events/news/press-release-details/2026/Uber-Announces-Date-of-Third-Quarter-2026-Results-Conference-Call/default.aspx",
+  "checked": "2026-11-01"
+ },
+ "QCOM": {
+  "date": "2026-11-04",
+  "timing": "AMC",
+  "call_time": "16:45",
+  "tz": "America/New_York",
+  "kind": "IR",
+  "source": "https://investor.qualcomm.com/news-events/press-releases/news-details/2026/Qualcomm-Schedules-Fourth-Quarter-and-Fiscal-2026-Earnings-Release-and-Conference-Call/default.aspx",
+  "checked": "2026-11-01",
+  "note": "Call 13:45 PT"
+ },
+ "ARM": {
+  "date": "2026-11-04",
+  "timing": "AMC",
+  "call_time": "17:00",
+  "tz": "America/New_York",
+  "kind": "IR",
+  "source": "https://newsroom.arm.com/news/arm-announces-earnings-release-date-for-second-quarter-fiscal-year-ending-2027",
+  "checked": "2026-11-01"
+ },
+ "QIA.DE": {
+  "date": "2026-11-04",
+  "timing": "AMC",
+  "time_local": "22:05",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://corporate.qiagen.com/English/investor-relations/events-and-presentations/events/2026/Full-Q3-2026-Results/default.aspx",
+  "checked": "2026-11-01",
+  "note": "Vollständige Q3-Zahlen (vorläufige Q3-Zahlen bereits am 21.10.2026); kein Call angekündigt; Xetra-Reaktion erst Do 05.11."
+ },
+ "BAYN.DE": {
+  "date": "2026-11-03",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "call_time": "14:30",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "dpa-AFX: Pk 10:00, Analystencall 14:30 MEZ"
+ },
+ "FME.DE": {
+  "date": "2026-11-03",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01"
+ },
+ "ZAL.DE": {
+  "date": "2026-11-03",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01"
+ },
+ "FRE.DE": {
+  "date": "2026-11-04",
+  "timing": "BMO",
+  "time_local": "06:45",
+  "call_time": "13:30",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "dpa-AFX: Pk 10:00, Analystencall 13:30 MEZ"
+ },
+ "HEI.DE": {
+  "date": "2026-11-04",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "dpa-AFX: nur Q3-Umsatz (Trading Statement)"
+ },
+ "VNA.DE": {
+  "date": "2026-11-04",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "call_time": "07:30",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01"
+ },
+ "G24.DE": {
+  "date": "2026-11-04",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01"
+ },
+ "CON.DE": {
+  "date": "2026-11-04",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01"
+ },
+ "BMW.DE": {
+  "date": "2026-11-04",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "call_time": "08:30",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "Presse- und Analystenkonferenz 08:30 MEZ"
+ },
+ "CBK.DE": {
+  "date": "2026-11-05",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "call_time": "09:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "Pk 10:30 MEZ"
+ },
+ "SHL.DE": {
+  "date": "2026-11-05",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "Jahreszahlen (GJ endet 30.09.), Jahres-Pk 10:00 MEZ"
+ },
+ "DTE.DE": {
+  "date": "2026-11-05",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "Pk 10:00 MEZ"
+ },
+ "DHL.DE": {
+  "date": "2026-11-05",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "Pk 08:30 MEZ"
+ },
+ "RHM.DE": {
+  "date": "2026-11-05",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01"
+ },
+ "DTG.DE": {
+  "date": "2026-11-06",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "call_time": "08:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "Presse- und Analystenkonferenz 08:00 MEZ"
+ },
+ "HOT.DE": {
+  "date": "2026-11-05",
+  "timing": "DMH",
+  "time_local": "14:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-10-November-2026-37a1d2a7-d442-4c02-87f9-fe32ace00fef",
+  "checked": "2026-11-01",
+  "note": "dpa-AFX: 14:00 MEZ, also während des Xetra-Handels"
+ }
+}

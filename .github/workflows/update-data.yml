@@ -1,0 +1,51 @@
+# Aktualisiert data/sectors.json und data/stocks.json.
+# Nur schedule + workflow_dispatch (kein push), damit der Daten-Commit
+# die Action nicht erneut startet. Commit-Nachricht ohne [skip ci],
+# damit GitHub Pages ("Deploy from a branch") die neue JSON trotzdem ausliefert.
+name: Kurse aktualisieren
+
+on:
+  schedule:
+    # Alle ~15 Minuten, ca. 13:30–21:00 UTC Mo–Fr
+    # (deckt US-Handelszeiten in EST und EDT ab, inkl. Zeitumstellung)
+    - cron: "30,45 13 * * 1-5"
+    - cron: "0,15,30,45 14-20 * * 1-5"
+    - cron: "0 21 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Abhängigkeiten
+        run: pip install -r requirements.txt
+
+      - name: Yahoo-Daten holen
+        run: python update.py
+
+      - name: data/*.json committen, falls geändert
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sectors.json data/stocks.json
+          if git diff --staged --quiet; then
+            echo "Keine Datenänderung"
+            exit 0
+          fi
+          git commit -m "data: Kurse aktualisieren"
+          git pull --rebase --autostash origin HEAD
+          git push

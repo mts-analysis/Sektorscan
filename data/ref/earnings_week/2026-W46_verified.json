@@ -1,0 +1,151 @@
+{
+ "_doc": "Manually verified earnings dates for 2026-W46 (checked 2026-11-08). kind: IR = company/IR source, secondary = reputable secondary source (dpa-AFX Wochenvorschau via Deutsche Börse live, 'Termine bis 17. November 2026'). time_local = release time (only if published), call_time = call/webcast start; tz = IANA zone. Germany on CET (MEZ, UTC+1) since 25.10.2026, US on EST (UTC-5) from 01.11.2026, Vietnam UTC+7 year-round. US open 09:30 ET = 15:30 MEZ = 21:30 VN; US close 16:00 ET = 22:00 MEZ = 04:00 VN next day.",
+ "ALV.DE": {
+  "date": "2026-11-12",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "call_time": "14:30",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.allianz.com/en/investor_relations/results-reports/results.html",
+  "checked": "2026-11-08",
+  "note": "Q3 2026; Release 07:00 MEZ; Medienkonferenz 09:30 MEZ; Analystencall 14:30 MEZ"
+ },
+ "SIE.DE": {
+  "date": "2026-11-12",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "call_time": "09:30",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://press.siemens.com/global/en/event/fourth-quarter-and-preliminary-figures-fiscal-2026",
+  "checked": "2026-11-08",
+  "note": "Jahreszahlen Q4 und vorläufige GJ-2026-Zahlen; Release 07:00 MEZ; Pressekonferenz 08:00 MEZ; Analystencall 09:30 MEZ"
+ },
+ "MUV2.DE": {
+  "date": "2026-11-12",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "call_time": "11:00",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.munichre.com/de/unternehmen/investoren/terminkalender.html",
+  "checked": "2026-11-08",
+  "note": "Quartalsmitteilung zum 30.09.2026; Veröffentlichung ca. 07:30 MEZ (IR); Medienkonferenz 08:30 MEZ; Analystencall 11:00 MEZ. dpa-AFX listet Release 07:00 mit Pk 08:30."
+ },
+ "MRK.DE": {
+  "date": "2026-11-12",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "call_time": "14:00",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.emdgroup.com/en/investors/events-and-presentations/webcasts-presentations.html",
+  "checked": "2026-11-08",
+  "note": "Q3 2026; Release 07:00, Medienkonferenz 09:30, Analystencall 14:00. IR-Seite schreibt CEST – Deutschland seit 25.10.2026 auf MEZ/CET (UTC+1)."
+ },
+ "HEN3.DE": {
+  "date": "2026-11-10",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "call_time": "09:00",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.henkel.com/investors-and-analysts/events/2026-q3",
+  "checked": "2026-11-08",
+  "note": "Q3-Quartalsmitteilung 07:30 MEZ; Investor-/Analysten-Webcast 09:00 MEZ"
+ },
+ "G1A.DE": {
+  "date": "2026-11-09",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "call_time": "14:00",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.gea.com/en/investors/events-releases/quarterly-reports/",
+  "checked": "2026-11-08",
+  "note": "Q3-Quartalsmitteilung 07:30 MEZ; Analystencall/Webcast 14:00 MEZ"
+ },
+ "HNR1.DE": {
+  "date": "2026-11-09",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.hannover-re.com/de/terminkalender/",
+  "checked": "2026-11-08",
+  "note": "Zwischenmitteilung zum 30. September 2026 (IR-Terminkalender, ohne Uhrzeit); Uhrzeit 07:30 MEZ laut dpa-AFX Wochenvorschau"
+ },
+ "BNR.DE": {
+  "date": "2026-11-11",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://corporate.brenntag.com/en/investor-relations/publications-and-events/",
+  "checked": "2026-11-08",
+  "note": "9M Interim Statement 2026 (IR); Capital Markets Day am 12.11.2026. Uhrzeit 07:00 MEZ laut dpa-AFX."
+ },
+ "ENR.DE": {
+  "date": "2026-11-11",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "call_time": "11:00",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.siemens-energy.com/global/en/home/investor-relations/publications-ad-hoc.html",
+  "checked": "2026-11-08",
+  "note": "Q4/GJ FY2026 (IR); Analystenkonferenz ab 11:00 MEZ (IR). Release 07:00 MEZ und Bilanz-Pk 08:00 MEZ laut dpa-AFX."
+ },
+ "RWE.DE": {
+  "date": "2026-11-11",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "call_time": "13:00",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.rwe.com/en/investor-relations/financial-calendar-and-publications/2026-Q3/",
+  "checked": "2026-11-08",
+  "note": "Ergebnisse der ersten drei Quartale 2026; Veröffentlichung ca. 07:00 MEZ; Investor-/Analystencall mit CFO Michael Müller 13:00 MEZ"
+ },
+ "IFX.DE": {
+  "date": "2026-11-10",
+  "timing": "BMO",
+  "time_local": "07:30",
+  "tz": "Europe/Berlin",
+  "kind": "IR",
+  "source": "https://www.infineon.com/de/about/investor",
+  "checked": "2026-11-08",
+  "note": "Ergebnisse 4. Geschäftsquartal / Jahreszahlen 2026 (IR-Seite, ohne Uhrzeit); Uhrzeit 07:30 MEZ und Pk 08:00 MEZ laut dpa-AFX"
+ },
+ "EOAN.DE": {
+  "date": "2026-11-11",
+  "timing": "BMO",
+  "time_local": "07:00",
+  "tz": "Europe/Berlin",
+  "kind": "secondary",
+  "source": "https://live.deutsche-boerse.com/nachrichten/WOCHENVORSCHAU-Termine-bis-17-November-2026-c16e7c6c-156a-45b0-b3e6-2b9a0994f396",
+  "checked": "2026-11-08",
+  "note": "dpa-AFX: Eon Q3-Zahlen 07:00 MEZ. E.ON-IR-Seite 'Quarterly Statement: January–September 2026' vorhanden, im Abruf ohne sichtbares Datum/Uhrzeit."
+ },
+ "CSCO": {
+  "date": "2026-11-12",
+  "timing": "AMC",
+  "call_time": "13:30",
+  "tz": "America/Los_Angeles",
+  "kind": "IR",
+  "source": "https://investor.cisco.com/news/news-details/2026/Cisco-Schedules-Conference-Call-for-Q1-Fiscal-Year-2027-Financial-Results/default.aspx",
+  "checked": "2026-11-08",
+  "note": "Q1 FY2027 (Periode bis 24.10.2026); Release after the close; Call 13:30 PT / 16:30 ET"
+ },
+ "AMAT": {
+  "date": "2026-11-12",
+  "timing": "AMC",
+  "call_time": "16:30",
+  "tz": "America/New_York",
+  "kind": "IR",
+  "source": "https://ir.appliedmaterials.com/events/event-details/q4-2026-applied-materials-earnings-conference-call/",
+  "checked": "2026-11-08",
+  "note": "Q4 2026 Earnings Conference Call 16:30 EST (IR); Release-Zeit nicht separat angegeben, Nasdaq/Yahoo: AMC"
+ }
+}
