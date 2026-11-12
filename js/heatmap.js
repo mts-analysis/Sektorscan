@@ -90,7 +90,7 @@
     $("#app").innerHTML = `
       ${indexSwitch(ix)}
       <div class="tool-row">${tfSwitcher()}${exportButton()}</div>
-      <p class="note">Fläche nach Börsenwert, Farbe nach ${periodName(tf)}. ${tf === 1 ? "Letzte Sitzung." : "Schlusskurse aus der Tageshistorie."}</p>
+      <p class="note">${periodName(tf)} · Fläche nach Börsenwert</p>
       ${html || `<p class="empty">Für diesen Index liegen keine Flächen vor.</p>`}`;
     window.__mtsHeat = { ix, tf, tiles: lastTiles, title: `Heatmap · ${window.MTS.indexName(ix)}` };
   }

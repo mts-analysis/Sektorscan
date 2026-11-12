@@ -32,6 +32,7 @@
     winEnd: -1,
     qTimer: 0,
     rets: null,
+    filtersOpen: window.matchMedia("(min-width: 768px) and (min-height: 700px)").matches,
   };
   const ROW_H = 44;
 
@@ -154,6 +155,20 @@
     return bits;
   }
 
+  function filterCount() {
+    let n = 0;
+    if (state.sectors.size) n += 1;
+    if (state.pctMin !== null || state.pctMax !== null) n += 1;
+    if (state.rvMin !== null) n += 1;
+    if (state.nearHigh !== null || state.nearLow !== null) n += 1;
+    if (state.wtMin !== null || state.wfMin !== null) n += 1;
+    if (state.mc.size) n += 1;
+    if (state.earnings) n += 1;
+    if (state.merkOn) n += 1;
+    if (window.MTS.timeframe() !== 1) n += 1;
+    return n;
+  }
+
   function renderShell(rows, total) {
     const pctOn3 = state.pctMin === 3 && state.pctMax === null;
     const pctOnM3 = state.pctMax === -3 && state.pctMin === null;
@@ -172,10 +187,17 @@
           </label>
           <div class="suggest" id="suggest" hidden role="listbox"></div>
         </div>
-        <div class="tool-row">${window.MTS.tfSwitcher()}</div>
-        <div class="chip-row" id="chip-row">
+        <div class="chip-row ix-scroll" id="chip-row">
           ${window.MTS.INDICES.map((ix) => chip(ix.name, state.indexes.has(ix.id), `data-ix="${ix.id}"`)).join("")}
           ${chip("Alle", state.indexes.size === 0, 'data-ix-all="1"')}
+        </div>
+        <div class="filter-bar">
+          <button type="button" class="chip${state.filtersOpen ? " is-on" : ""}" data-filter-toggle aria-expanded="${state.filtersOpen ? "true" : "false"}">Filter${filterCount() ? ` ${filterCount()}` : ""}</button>
+          <button type="button" class="linkish" data-filter-reset>Zurücksetzen</button>
+        </div>
+        <div class="filter-sheet" id="filter-sheet"${state.filtersOpen ? "" : " hidden"}>
+        <div class="tool-row">${window.MTS.tfSwitcher()}</div>
+        <div class="chip-row" id="filter-chips">
           ${chip("Sektor", state.sectors.size > 0, 'data-open="sektor"')}
           ${chip("> +3 %", pctOn3, 'data-preset="pct3"')}
           ${chip("< −3 %", pctOnM3, 'data-preset="pctm3"')}
@@ -227,7 +249,8 @@
              ${chip("Klein (< 2 Mrd. $)", state.mc.has("klein"), 'data-mc="klein"')}
              <button type="button" class="linkish" data-clear="mc">Zurücksetzen</button>
            </div>`)}
-        <p class="note">Kurse in Landeswährung, letzte Sitzung des jeweiligen Marktes, ca. 15 Min. verzögert. Börsenwert in USD.${activeSummary().length ? " · Filter: " + activeSummary().join(" · ") : ""}</p>
+        <p class="note">Landeswährung, ca. 15 Min. verzögert. Börsenwert in USD.</p>
+        </div>
       </section>
       <div class="table-shell">
         <div class="table-card" id="table-card"></div>
@@ -376,12 +399,34 @@
       }, 120);
     });
     $("#app").addEventListener("scroll", (e) => {
-      if (e.target && e.target.id === "table-card") paintWindow();
+      if (e.target && e.target.id === "table-card") {
+        document.querySelector(".page")?.classList.toggle("is-scrolled", e.target.scrollTop > 24);
+        paintWindow();
+      }
     }, true);
     $("#app").addEventListener("click", (e) => {
       if (!e.target.closest(".search-wrap")) showSuggest("");
-      const chipBtn = e.target.closest("#chip-row button, .filter-panel button");
+      const chipBtn = e.target.closest("#chip-row button, #filter-sheet button, [data-filter-toggle], [data-filter-reset]");
       if (chipBtn && !chipBtn.dataset.star) {
+        if (chipBtn.dataset.filterToggle !== undefined || chipBtn.hasAttribute("data-filter-toggle")) {
+          state.filtersOpen = !state.filtersOpen;
+          refresh();
+          return;
+        }
+        if (chipBtn.hasAttribute("data-filter-reset")) {
+          state.sectors.clear();
+          state.pctMin = state.pctMax = null;
+          state.rvMin = null;
+          state.nearHigh = state.nearLow = null;
+          state.wtMin = state.wfMin = null;
+          state.mc.clear();
+          state.earnings = false;
+          state.merkOn = false;
+          state.openPanel = null;
+          window.MTS.setTimeframe(1);
+          refresh();
+          return;
+        }
         if (chipBtn.dataset.open) {
           state.openPanel = state.openPanel === chipBtn.dataset.open ? null : chipBtn.dataset.open;
           refresh();

@@ -191,7 +191,7 @@
       return C.INDICES.some((x) => x.id === q) ? q : "SPX";
     },
     indexSwitch(current) {
-      return `<nav class="chip-row index-switch" aria-label="Index">${C.INDICES.map((ix) =>
+      return `<nav class="chip-row ix-scroll index-switch" aria-label="Index">${C.INDICES.map((ix) =>
         `<a class="chip${ix.id === current ? " is-on" : ""}" href="?ix=${ix.id}"${ix.id === current ? ' aria-current="true"' : ""}>${ix.name}</a>`
       ).join("")}</nav>`;
     },
