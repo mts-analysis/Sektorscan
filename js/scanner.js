@@ -25,7 +25,14 @@
     sortKey: "c",
     sortDir: -1,
     openPanel: null,
+    merkOn: false,
+    searchIndex: null,
+    viewRows: [],
+    winStart: -1,
+    winEnd: -1,
+    qTimer: 0,
   };
+  const ROW_H = 44;
 
   function applyParams() {
     const p = params();
@@ -47,15 +54,19 @@
     if (mc) mc.split(",").forEach((s) => state.mc.add(s));
     if (p.get("ew") === "1" || p.get("earnings") === "1") state.earnings = true;
     if (p.get("q")) state.q = p.get("q");
+    if (p.get("merk") === "1") state.merkOn = true;
     if (p.get("sort")) state.sortKey = p.get("sort");
     if (p.get("dir")) state.sortDir = Number(p.get("dir")) || -1;
   }
 
   function filtered() {
     const rows = state.data.rows || [];
-    const q = state.q.trim().toLowerCase();
+    const q = window.MTS.fold(state.q).trim();
+    const searching = q.length > 0;
+    const merk = state.merkOn ? window.MTS.readMerk() : null;
     return rows.filter((r) => {
-      if (q && !(`${r.t} ${r.n}`).toLowerCase().includes(q)) return false;
+      if (searching && !(r._blob || "").includes(q)) return false;
+      if (merk && !merk.has(r.t)) return false;
       if (state.sectors.size && !state.sectors.has(r.s)) return false;
       if (state.pctMin !== null && !(r.c >= state.pctMin)) return false;
       if (state.pctMax !== null && !(r.c <= state.pctMax)) return false;
@@ -70,7 +81,7 @@
       }
       if (state.wtMin !== null && !(r.wt >= state.wtMin)) return false;
       if (state.wfMin !== null && !(r.wf >= state.wfMin)) return false;
-      if (state.indexes.size && !(r.ix || []).some((x) => state.indexes.has(x))) return false;
+      if (!searching && state.indexes.size && !(r.ix || []).some((x) => state.indexes.has(x))) return false;
       if (state.mc.size) {
         const b = mcBucket(r.mc);
         if (!b || !state.mc.has(b)) return false;
@@ -131,6 +142,8 @@
     else bits.push("alle Indizes");
     if (state.mc.size) bits.push([...state.mc].map((x) => ({ gross: "groß", mittel: "mittel", klein: "klein" }[x])).join(", "));
     if (state.earnings) bits.push("Earnings diese Woche");
+    if (state.merkOn) bits.push("Merkliste");
+    if (window.MTS.fold(state.q).trim()) bits.push("Suche in allen Indizes");
     return bits;
   }
 
@@ -145,10 +158,13 @@
           <p class="kicker">Aktien-Scanner  ·  ${escapeHtml(state.indexes.size ? [...state.indexes].map((id) => window.MTS.indexName(id)).join(", ") : "alle Indizes")}</p>
           <p class="hit-count" id="hit-count">${rows.length} von ${total} Treffern</p>
         </div>
-        <label class="search-wrap">
-          <span class="visually-hidden">Suche</span>
-          <input type="search" id="q" class="search" placeholder="Ticker oder Name" value="${escapeHtml(state.q)}" enterkeyhint="search">
-        </label>
+        <div class="search-wrap">
+          <label>
+            <span class="visually-hidden">Suche</span>
+            <input type="search" id="q" class="search" placeholder="Ticker oder Name, alle Indizes" value="${escapeHtml(state.q)}" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false">
+          </label>
+          <div class="suggest" id="suggest" hidden role="listbox"></div>
+        </div>
         <div class="chip-row" id="chip-row">
           ${window.MTS.INDICES.map((ix) => chip(ix.name, state.indexes.has(ix.id), `data-ix="${ix.id}"`)).join("")}
           ${chip("Alle", state.indexes.size === 0, 'data-ix-all="1"')}
@@ -161,6 +177,7 @@
           ${chip("Wiederholer", state.wtMin !== null || state.wfMin !== null, 'data-open="wh"')}
           ${chip("Börsenwert", state.mc.size > 0, 'data-open="mc"')}
           ${chip("Earnings diese Woche", state.earnings, 'data-preset="ew"')}
+          ${chip(`Merkliste${window.MTS.readMerk().size ? " " + window.MTS.readMerk().size : ""}`, state.merkOn, 'data-preset="merk"')}
         </div>
         ${panel("sektor", "Sektor (Mehrfachauswahl)",
           `<div class="chip-row">${SECTORS.map((s) => chip(s, state.sectors.has(s), `data-sector="${escapeHtml(s)}"`)).join("")}
@@ -208,8 +225,7 @@
         <div class="table-card" id="table-card"></div>
       </div>
     `;
-    bind();
-    renderTable(rows, total);
+    renderList(rows, total);
   }
 
   function caret(key) {
@@ -219,54 +235,105 @@
       : '<span class="caret is-up" aria-hidden="true"></span>';
   }
 
-  function renderTable(rows, total) {
-    const cols = [
-      ["t", "Ticker", "lt"],
-      ["n", "Name", "lt"],
-      ["s", "Sektor", "lt"],
-      ["p", "Kurs", "rt"],
-      ["c", "%", "rt"],
-      ["rv", "Rel. Volumen", "rt"],
-    ];
-    const body = rows.map((r) => {
-      const col = pctColor(r.c);
-      return `<tr data-t="${escapeHtml(r.t)}" tabindex="0">
-        <td class="mono">${escapeHtml(r.t)}</td>
-        <td>${escapeHtml(r.n)}</td>
-        <td class="muted">${escapeHtml(r.s)}</td>
-        <td class="num">${window.MTS.money(r.p, r.ccy)}</td>
-        <td class="num" style="color:${col}">${dePct(r.c)}</td>
-        <td class="num muted">${r.rv == null ? "–" : deNum(r.rv)}</td>
-      </tr>`;
-    }).join("");
-    const empty = rows.length === 0
-      ? `<p class="empty">Keine Titel passen zu diesen Filtern.</p>`
-      : "";
-    $("#table-card").innerHTML = `
-      <div class="table-scroll">
-        <table class="grid-table">
-          <thead><tr>${cols.map(([k, lab, al]) =>
-            `<th class="${al === "rt" ? "num" : ""} ${k === state.sortKey ? "is-sort" : ""}" data-sort="${k}">${lab} ${caret(k)}</th>`
-          ).join("")}</tr></thead>
-          <tbody>${body}</tbody>
-        </table>
+  function headCell(key, label, num) {
+    return `<button type="button" class="${num ? "num" : ""} ${key === state.sortKey ? "is-sort" : ""}" data-sort="${key}">${label} ${caret(key)}</button>`;
+  }
+
+  function rowHtml(r) {
+    const col = pctColor(r.c);
+    return `<div class="vrow vgrid" data-t="${escapeHtml(r.t)}" tabindex="0">
+      ${window.MTS.starButton(r.t)}
+      <span class="mono">${escapeHtml(r.t)}</span>
+      <span class="name">${escapeHtml(r.n)}</span>
+      <span class="num">${window.MTS.money(r.p, r.ccy)}</span>
+      <span class="num" style="color:${col}">${dePct(r.c)}</span>
+      <span class="num muted">${r.rv == null ? "–" : deNum(r.rv)}</span>
+    </div>`;
+  }
+
+  function renderList(rows, total) {
+    state.viewRows = rows;
+    state.winStart = -1;
+    state.winEnd = -1;
+    const card = $("#table-card");
+    if (!card) return;
+    const empty = rows.length === 0;
+    const emptyText = state.merkOn && !window.MTS.fold(state.q).trim()
+      ? "Noch keine Titel auf der Merkliste. Stern tippen, um einen Titel zu merken."
+      : "Keine Titel passen zu diesen Filtern.";
+    card.innerHTML = `
+      <div class="vhead vgrid">
+        <span></span>
+        ${headCell("t", "Ticker", false)}
+        ${headCell("n", "Name", false)}
+        ${headCell("p", "Kurs", true)}
+        ${headCell("c", "%", true)}
+        ${headCell("rv", "Rel. Volumen", true)}
       </div>
-      ${empty}`;
+      <div class="vspacer" id="vspacer" style="height:${rows.length * ROW_H}px">
+        <div class="vwin" id="vwin"></div>
+      </div>
+      <p class="empty" id="vempty"${empty ? "" : " hidden"}>${escapeHtml(emptyText)}</p>`;
     const hc = $("#hit-count");
-    if (hc) hc.textContent = `${rows.length} von ${total} Treffern`;
+    if (hc) {
+      const scope = window.MTS.fold(state.q).trim() ? " · alle Indizes" : "";
+      hc.textContent = `${rows.length} von ${total} Treffern${scope}`;
+    }
+    card.scrollTop = 0;
+    paintWindow();
+    requestAnimationFrame(() => {
+      state.winStart = -1;
+      paintWindow();
+    });
+  }
+
+  function paintWindow() {
+    const card = $("#table-card");
+    const win = $("#vwin");
+    const spacer = $("#vspacer");
+    if (!card || !win || !spacer) return;
+    const total = state.viewRows.length;
+    const top = card.scrollTop;
+    const view = card.clientHeight || 640;
+    const start = Math.max(0, Math.floor(top / ROW_H) - 6);
+    const end = Math.min(total, Math.ceil((top + view) / ROW_H) + 8);
+    if (start === state.winStart && end === state.winEnd) return;
+    state.winStart = start;
+    state.winEnd = end;
+    spacer.style.height = `${total * ROW_H}px`;
+    win.style.transform = `translateY(${start * ROW_H}px)`;
+    win.innerHTML = state.viewRows.slice(start, end).map(rowHtml).join("");
+  }
+
+  function showSuggest(query) {
+    const box = $("#suggest");
+    if (!box) return;
+    const hits = window.MTS.suggest(state.searchIndex, query, 8);
+    if (!query.trim() || !hits.length) {
+      box.hidden = true;
+      box.innerHTML = "";
+      return;
+    }
+    box.hidden = false;
+    box.innerHTML = hits.map((r) => {
+      const ix = (r.ix || []).map((id) => window.MTS.indexName(id)).join(", ");
+      return `<button type="button" class="suggest-item" data-pick="${escapeHtml(r.t)}">
+        <span class="mono">${escapeHtml(r.t)}</span>
+        <span>${escapeHtml(r.n)}</span>
+        <span class="muted">${escapeHtml(ix)}</span>
+      </button>`;
+    }).join("");
   }
 
   function refresh() {
     if (!state.data) return;
+    showSuggest("");
     const rows = sortRows(filtered());
     renderShell(rows, state.data.n || state.data.rows.length);
+    setStand(state.data);
     if (state.indexes.size === 1) {
-      const id = [...state.indexes][0];
-      const block = (state.data.by_index || {})[id];
-      if (block && block.stand) setStand({ stand: block.stand });
-      window.MTS.syncTabs(id);
+      window.MTS.syncTabs([...state.indexes][0]);
     } else {
-      setStand(state.data);
       window.MTS.syncTabs("SPX");
     }
     const chart = params().get("chart");
@@ -279,94 +346,130 @@
   }
 
   function bind() {
-    const q = $("#q");
-    if (q) {
-      q.addEventListener("input", () => {
-        state.q = q.value;
+    if (state.bound) return;
+    state.bound = true;
+    $("#app").addEventListener("input", (e) => {
+      if (e.target.id !== "q") return;
+      state.q = e.target.value;
+      showSuggest(state.q);
+      clearTimeout(state.qTimer);
+      state.qTimer = setTimeout(() => {
         const rows = sortRows(filtered());
-        renderTable(rows, state.data.n || state.data.rows.length);
-      });
-    }
-    $("#chip-row")?.addEventListener("click", (e) => {
-      const btn = e.target.closest("button");
-      if (!btn) return;
-      if (btn.dataset.open) {
-        state.openPanel = state.openPanel === btn.dataset.open ? null : btn.dataset.open;
-        refresh();
-        return;
-      }
-      if (btn.dataset.preset === "pct3") {
-        const on = state.pctMin === 3 && state.pctMax === null;
-        state.pctMin = on ? null : 3;
-        state.pctMax = null;
-        refresh();
-        return;
-      }
-      if (btn.dataset.preset === "pctm3") {
-        const on = state.pctMax === -3 && state.pctMin === null;
-        state.pctMax = on ? null : -3;
-        state.pctMin = null;
-        refresh();
-        return;
-      }
-      if (btn.dataset.preset === "ew") {
-        state.earnings = !state.earnings;
-        refresh();
-        return;
-      }
-      if (btn.dataset.ix) {
-        toggleSet(state.indexes, btn.dataset.ix);
-        refresh();
-        return;
-      }
-      if (btn.dataset.ixAll) {
-        state.indexes.clear();
-        refresh();
-      }
+        renderList(rows, state.data.n || state.data.rows.length);
+      }, 120);
     });
-    $$(".filter-panel").forEach((p) => {
-      p.addEventListener("click", (e) => {
-        const btn = e.target.closest("button");
-        if (!btn) return;
-        if (btn.dataset.sector) { toggleSet(state.sectors, btn.dataset.sector); refresh(); }
-        if (btn.dataset.rv) { state.rvMin = state.rvMin === Number(btn.dataset.rv) ? null : Number(btn.dataset.rv); refresh(); }
-        if (btn.dataset.nh) { state.nearHigh = state.nearHigh === Number(btn.dataset.nh) ? null : Number(btn.dataset.nh); state.nearLow = null; refresh(); }
-        if (btn.dataset.nl) { state.nearLow = state.nearLow === Number(btn.dataset.nl) ? null : Number(btn.dataset.nl); state.nearHigh = null; refresh(); }
-        if (btn.dataset.wt) { state.wtMin = state.wtMin === Number(btn.dataset.wt) ? null : Number(btn.dataset.wt); refresh(); }
-        if (btn.dataset.wf) { state.wfMin = state.wfMin === Number(btn.dataset.wf) ? null : Number(btn.dataset.wf); refresh(); }
-        if (btn.dataset.ix) { toggleSet(state.indexes, btn.dataset.ix); refresh(); }
-        if (btn.dataset.mc) { toggleSet(state.mc, btn.dataset.mc); refresh(); }
-        if (btn.dataset.apply === "pct") {
+    $("#app").addEventListener("scroll", (e) => {
+      if (e.target && e.target.id === "table-card") paintWindow();
+    }, true);
+    $("#app").addEventListener("click", (e) => {
+      if (!e.target.closest(".search-wrap")) showSuggest("");
+      const chipBtn = e.target.closest("#chip-row button, .filter-panel button");
+      if (chipBtn && !chipBtn.dataset.star) {
+        if (chipBtn.dataset.open) {
+          state.openPanel = state.openPanel === chipBtn.dataset.open ? null : chipBtn.dataset.open;
+          refresh();
+          return;
+        }
+        if (chipBtn.dataset.preset === "pct3") {
+          const on = state.pctMin === 3 && state.pctMax === null;
+          state.pctMin = on ? null : 3;
+          state.pctMax = null;
+          refresh();
+          return;
+        }
+        if (chipBtn.dataset.preset === "pctm3") {
+          const on = state.pctMax === -3 && state.pctMin === null;
+          state.pctMax = on ? null : -3;
+          state.pctMin = null;
+          refresh();
+          return;
+        }
+        if (chipBtn.dataset.preset === "ew") {
+          state.earnings = !state.earnings;
+          refresh();
+          return;
+        }
+        if (chipBtn.dataset.preset === "merk") {
+          state.merkOn = !state.merkOn;
+          refresh();
+          return;
+        }
+        if (chipBtn.dataset.ix && chipBtn.closest("#chip-row")) {
+          toggleSet(state.indexes, chipBtn.dataset.ix);
+          refresh();
+          return;
+        }
+        if (chipBtn.dataset.ixAll) {
+          state.indexes.clear();
+          refresh();
+          return;
+        }
+        if (chipBtn.dataset.sector) { toggleSet(state.sectors, chipBtn.dataset.sector); refresh(); return; }
+        if (chipBtn.dataset.rv) { state.rvMin = state.rvMin === Number(chipBtn.dataset.rv) ? null : Number(chipBtn.dataset.rv); refresh(); return; }
+        if (chipBtn.dataset.nh) { state.nearHigh = state.nearHigh === Number(chipBtn.dataset.nh) ? null : Number(chipBtn.dataset.nh); state.nearLow = null; refresh(); return; }
+        if (chipBtn.dataset.nl) { state.nearLow = state.nearLow === Number(chipBtn.dataset.nl) ? null : Number(chipBtn.dataset.nl); state.nearHigh = null; refresh(); return; }
+        if (chipBtn.dataset.wt) { state.wtMin = state.wtMin === Number(chipBtn.dataset.wt) ? null : Number(chipBtn.dataset.wt); refresh(); return; }
+        if (chipBtn.dataset.wf) { state.wfMin = state.wfMin === Number(chipBtn.dataset.wf) ? null : Number(chipBtn.dataset.wf); refresh(); return; }
+        if (chipBtn.dataset.mc) { toggleSet(state.mc, chipBtn.dataset.mc); refresh(); return; }
+        if (chipBtn.dataset.apply === "pct") {
           const a = $("#pctMinIn")?.value;
           const b = $("#pctMaxIn")?.value;
           state.pctMin = a === "" ? null : Number(a);
           state.pctMax = b === "" ? null : Number(b);
           refresh();
+          return;
         }
-        if (btn.dataset.clear === "sektor") { state.sectors.clear(); refresh(); }
-        if (btn.dataset.clear === "pct") { state.pctMin = state.pctMax = null; refresh(); }
-        if (btn.dataset.clear === "vol") { state.rvMin = null; refresh(); }
-        if (btn.dataset.clear === "range52") { state.nearHigh = state.nearLow = null; refresh(); }
-        if (btn.dataset.clear === "wh") { state.wtMin = state.wfMin = null; refresh(); }
-        if (btn.dataset.clear === "mc") { state.mc.clear(); refresh(); }
-      });
-    });
-    $("#table-card")?.addEventListener("click", (e) => {
-      const th = e.target.closest("th[data-sort]");
-      if (th) {
+        if (chipBtn.dataset.clear === "sektor") { state.sectors.clear(); refresh(); return; }
+        if (chipBtn.dataset.clear === "pct") { state.pctMin = state.pctMax = null; refresh(); return; }
+        if (chipBtn.dataset.clear === "vol") { state.rvMin = null; refresh(); return; }
+        if (chipBtn.dataset.clear === "range52") { state.nearHigh = state.nearLow = null; refresh(); return; }
+        if (chipBtn.dataset.clear === "wh") { state.wtMin = state.wfMin = null; refresh(); return; }
+        if (chipBtn.dataset.clear === "mc") { state.mc.clear(); refresh(); return; }
+      }
+      const pick = e.target.closest("[data-pick]");
+      if (pick) {
+        state.q = pick.dataset.pick;
+        const input = $("#q");
+        if (input) input.value = state.q;
+        showSuggest("");
+        const rows = sortRows(filtered());
+        renderList(rows, state.data.n || state.data.rows.length);
+        return;
+      }
+      const th = e.target.closest("[data-sort]");
+      if (th && e.target.closest("#table-card")) {
         const k = th.dataset.sort;
         if (state.sortKey === k) state.sortDir *= -1;
         else { state.sortKey = k; state.sortDir = k === "t" || k === "n" || k === "s" ? 1 : -1; }
-        refresh();
+        const rows = sortRows(filtered());
+        renderList(rows, state.data.n || state.data.rows.length);
         return;
       }
-      const tr = e.target.closest("tr[data-t]");
-      if (tr) openChart(tr.dataset.t);
+      const row = e.target.closest(".vrow[data-t]");
+      if (row) openChart(row.dataset.t);
     });
-    $("#table-card")?.addEventListener("keydown", (e) => {
+    document.addEventListener("mts-merk", () => {
+      const merkBtn = document.querySelector('[data-preset="merk"]');
+      if (merkBtn) {
+        const n = window.MTS.readMerk().size;
+        merkBtn.textContent = n ? `Merkliste ${n}` : "Merkliste";
+      }
+      if (state.merkOn && state.data) {
+        renderList(sortRows(filtered()), state.data.n || state.data.rows.length);
+      }
+    });
+    $("#app").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.id === "q") {
+        const first = $("#suggest .suggest-item");
+        if (first && !$("#suggest").hidden) {
+          e.preventDefault();
+          first.click();
+        }
+        return;
+      }
       if (e.key === "Enter" || e.key === " ") {
-        const tr = e.target.closest("tr[data-t]");
-        if (tr) { e.preventDefault(); openChart(tr.dataset.t); }
+        const row = e.target.closest(".vrow[data-t]");
+        if (row) { e.preventDefault(); openChart(row.dataset.t); }
       }
     });
   }
@@ -386,6 +489,7 @@
             <p class="modal-name">${escapeHtml(r.n)}  ·  ${escapeHtml(r.s)}</p>
           </div>
           <button type="button" class="chip" id="modal-close">Schließen</button>
+          ${window.MTS.starButton(r.t)}
         </div>
         <p class="modal-px">${window.MTS.money(r.p, r.ccy)}  <span style="color:${col}">${dePct(r.c)}</span></p>
         ${sparkSVG(r.sp, col, 640, 180)}
@@ -409,8 +513,10 @@
     try {
       const data = await loadJSON("data/stocks.json");
       state.data = data;
+      state.searchIndex = window.MTS.buildSearchIndex(data.rows || []);
       setStand(data);
       if (!state.sawIndexParam) state.indexes.add("SPX");
+      bind();
       refresh();
     } catch (err) {
       $("#app").innerHTML = `<p class="error">Die Kursdaten konnten nicht geladen werden. Bitte später erneut öffnen.</p>`;
@@ -419,5 +525,12 @@
   }
 
   start();
-  setInterval(() => { if (state.data) loadJSON("data/stocks.json").then((d) => { state.data = d; refresh(); }).catch(() => {}); }, window.MTS.REFRESH_MS);
+  setInterval(() => {
+    if (!state.data) return;
+    loadJSON("data/stocks.json").then((d) => {
+      state.data = d;
+      state.searchIndex = window.MTS.buildSearchIndex(d.rows || []);
+      refresh();
+    }).catch(() => {});
+  }, window.MTS.REFRESH_MS);
 })();

@@ -14,6 +14,7 @@
       const col = pctColor(e.c, Math.max(maxAbs, 1));
       const w = (Math.abs(e.c) / maxAbs) * 100;
       return `<div class="bar-row${i % 2 ? "" : " is-alt"}">
+        ${window.MTS.starButton(e.t)}
         <div class="bar-id">
           <span class="mono">${escapeHtml(e.t)}</span>
           <span class="muted">${escapeHtml(e.n)}${e.p == null ? "" : " · " + window.MTS.money(e.p, e.ccy)}</span>
@@ -34,6 +35,7 @@
   function wcol(title, colorClass, items, sideWord, nDays) {
     const rows = (items || []).map((e) => `
       <div class="wh-row">
+        ${window.MTS.starButton(e.t)}
         <span class="wh-chip ${colorClass}">${e.k}/${nDays}</span>
         <span class="mono">${escapeHtml(e.t)}</span>
         <span class="muted">${escapeHtml(e.n)}  ·  ${escapeHtml(e.s)}</span>
@@ -55,7 +57,7 @@
       $("#app").innerHTML = `${window.MTS.indexSwitch(ix)}<p class="error">Für diesen Index liegen gerade keine Daten vor.</p>`;
       return;
     }
-    setStand(block.stand ? { stand: block.stand } : data);
+    setStand(data);
     const n = data.wiederholer_days || 0;
     const since = data.wiederholer_since || "06.11.2026";
     const sess = block.session_date || "";

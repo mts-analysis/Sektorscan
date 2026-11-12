@@ -122,12 +122,8 @@
     </svg>`;
   }
 
-  function setStand(stand) {
-    const el = $("#stand");
-    const label = stand && stand.label ? stand.label : "";
-    el.textContent = label
-      ? `Stand: ${label} (ca. 15 Min. verzögert)`
-      : "Stand unbekannt";
+  function setStand(data) {
+    if (window.MTS) window.MTS.setStand(data);
   }
 
   function deSession(iso) {
@@ -157,8 +153,8 @@
     </article>`;
   }
 
-  function renderMarket(market, switcher) {
-    setStand(market.stand);
+  function renderMarket(market, switcher, data) {
+    setStand(data);
     const upCls = market.pct >= 0 ? "is-up" : "is-down";
     const sectors = Array.isArray(market.sectors) ? market.sectors : [];
     const nSectors = sectors.length;
@@ -216,10 +212,10 @@
         $("#app").innerHTML = `${switcher}<p class="error">Für diesen Index liegen gerade keine Daten vor.</p>`;
         return;
       }
-      renderMarket(market, switcher);
+      renderMarket(market, switcher, data);
       return;
     }
-    setStand(data.stand);
+    setStand(data);
 
     const idx = data.index;
     const up = data.up;
