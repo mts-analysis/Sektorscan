@@ -230,7 +230,43 @@
         minutes: hour * 60 + Number(parts.minute),
       };
     },
-    marketBadges(now = new Date()) {
+    INDEX_EXCHANGE: { SPX: "NYSE", DAX: "Xetra", KS200: "KRX", N225: "TSE", UKX: "LSE" },
+    SECTORS: [
+      "Technologie", "Finanzen", "Gesundheit", "Zyklischer Konsum", "Basiskonsum",
+      "Industrie", "Energie", "Grundstoffe", "Versorger", "Immobilien", "Kommunikation",
+    ],
+    timeframe() {
+      const q = new URLSearchParams(location.search).get("tf");
+      if (q === "1" || q === "5" || q === "20") return Number(q);
+      try {
+        const saved = sessionStorage.getItem("mts-tf");
+        if (saved === "5" || saved === "20") return Number(saved);
+      } catch { /* private mode */ }
+      return 1;
+    },
+    setTimeframe(n) {
+      const value = n === 5 || n === 20 ? String(n) : "1";
+      try { sessionStorage.setItem("mts-tf", value); } catch { /* private mode */ }
+    },
+    periodName(n = C.timeframe()) {
+      return n === 5 ? "5 Tage" : n === 20 ? "20 Tage" : "Tag";
+    },
+    tfSwitcher() {
+      const cur = C.timeframe();
+      return `<div class="chip-row tf-row" role="group" aria-label="Zeitraum">${[1, 5, 20].map((n) =>
+        `<button type="button" class="chip${cur === n ? " is-on" : ""}" data-tf="${n}">${C.periodName(n)}</button>`
+      ).join("")}</div>`;
+    },
+    exportButton() {
+      return `<button type="button" class="chip" data-export="1">TikTok-Bild speichern</button>`;
+    },
+    async returns() {
+      if (!C._returnsPromise) {
+        C._returnsPromise = C.loadJSON("data/history/returns.json").catch(() => null);
+      }
+      return C._returnsPromise;
+    },
+    exchanges(now = new Date()) {
       const lunch = (a, b) => ({ start: a[0] * 60 + a[1], end: b[0] * 60 + b[1] });
       const sessions = [
         { name: "NYSE", tz: "America/New_York", open: 9 * 60 + 30, close: 16 * 60, lunch: null, holidays: NYSE },
@@ -248,8 +284,13 @@
             ? "Mittagspause"
             : "offen";
         }
-        const cls = state === "offen" ? "is-open" : state === "Mittagspause" ? "is-lunch" : "is-closed";
-        return `<span class="mkt ${cls}">${ex.name} · ${state}</span>`;
+        return { name: ex.name, state };
+      });
+    },
+    marketBadges(now = new Date()) {
+      return C.exchanges(now).map((ex) => {
+        const cls = ex.state === "offen" ? "is-open" : ex.state === "Mittagspause" ? "is-lunch" : "is-closed";
+        return `<span class="mkt ${cls}">${ex.name} · ${ex.state}</span>`;
       }).join("");
     },
   };
@@ -271,6 +312,11 @@
   setInterval(paintMarkets, 30000);
 
   document.addEventListener("click", (e) => {
+    const tf = e.target.closest("[data-tf]");
+    if (tf && window.MTS) {
+      window.MTS.setTimeframe(Number(tf.dataset.tf));
+      document.dispatchEvent(new CustomEvent("mts-tf"));
+    }
     const star = e.target.closest("[data-star]");
     if (!star || !window.MTS) return;
     e.preventDefault();

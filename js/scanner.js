@@ -31,6 +31,7 @@
     winStart: -1,
     winEnd: -1,
     qTimer: 0,
+    rets: null,
   };
   const ROW_H = 44;
 
@@ -68,8 +69,10 @@
       if (searching && !(r._blob || "").includes(q)) return false;
       if (merk && !merk.has(r.t)) return false;
       if (state.sectors.size && !state.sectors.has(r.s)) return false;
-      if (state.pctMin !== null && !(r.c >= state.pctMin)) return false;
-      if (state.pctMax !== null && !(r.c <= state.pctMax)) return false;
+      const shown = shownChange(r);
+      if (window.MTS.timeframe() !== 1 && shown == null) return false;
+      if (state.pctMin !== null && !(shown >= state.pctMin)) return false;
+      if (state.pctMax !== null && !(shown <= state.pctMax)) return false;
       if (state.rvMin !== null) {
         if (r.rv === null || r.rv === undefined || !(r.rv >= state.rvMin)) return false;
       }
@@ -102,6 +105,10 @@
     const k = state.sortKey;
     const d = state.sortDir;
     const val = (r) => {
+      if (k === "c" && window.MTS.timeframe() !== 1) {
+        const shown = shownChange(r);
+        return shown == null ? (d > 0 ? Infinity : -Infinity) : shown;
+      }
       const v = r[k];
       if (v === null || v === undefined) return d > 0 ? Infinity : -Infinity;
       if (k === "t" || k === "n" || k === "s") return String(v).toLowerCase();
@@ -165,6 +172,7 @@
           </label>
           <div class="suggest" id="suggest" hidden role="listbox"></div>
         </div>
+        <div class="tool-row">${window.MTS.tfSwitcher()}</div>
         <div class="chip-row" id="chip-row">
           ${window.MTS.INDICES.map((ix) => chip(ix.name, state.indexes.has(ix.id), `data-ix="${ix.id}"`)).join("")}
           ${chip("Alle", state.indexes.size === 0, 'data-ix-all="1"')}
@@ -239,14 +247,23 @@
     return `<button type="button" class="${num ? "num" : ""} ${key === state.sortKey ? "is-sort" : ""}" data-sort="${key}">${label} ${caret(key)}</button>`;
   }
 
+  function shownChange(r) {
+    const tf = window.MTS.timeframe();
+    if (tf === 1) return r.c;
+    const pair = state.rets && state.rets.px && state.rets.px[r.t];
+    if (!pair) return null;
+    return tf === 5 ? pair[0] : pair[1];
+  }
+
   function rowHtml(r) {
-    const col = pctColor(r.c);
+    const ch = shownChange(r);
+    const col = pctColor(ch);
     return `<div class="vrow vgrid" data-t="${escapeHtml(r.t)}" tabindex="0">
       ${window.MTS.starButton(r.t)}
       <span class="mono">${escapeHtml(r.t)}</span>
       <span class="name">${escapeHtml(r.n)}</span>
       <span class="num">${window.MTS.money(r.p, r.ccy)}</span>
-      <span class="num" style="color:${col}">${dePct(r.c)}</span>
+      <span class="num" style="color:${col}">${ch == null ? "–" : dePct(ch)}</span>
       <span class="num muted">${r.rv == null ? "–" : deNum(r.rv)}</span>
     </div>`;
   }
@@ -479,6 +496,7 @@
       const data = await loadJSON("data/stocks.json");
       state.data = data;
       state.searchIndex = window.MTS.buildSearchIndex(data.rows || []);
+      state.rets = await window.MTS.returns();
       setStand(data);
       if (!state.sawIndexParam) state.indexes.add("SPX");
       bind();
@@ -498,4 +516,5 @@
       refresh();
     }).catch(() => {});
   }, window.MTS.REFRESH_MS);
+  document.addEventListener("mts-tf", () => { if (state.data) refresh(); });
 })();

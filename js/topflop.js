@@ -47,8 +47,18 @@
     </div>`;
   }
 
+  let pack = null;
+
+  function periodChange(row, tf) {
+    if (tf === 1) return row.c;
+    const pair = pack && pack.px && pack.px[row.t];
+    if (!pair) return null;
+    return tf === 5 ? pair[0] : pair[1];
+  }
+
   function render(data) {
     const ix = window.MTS.pageIndex();
+    const tf = window.MTS.timeframe();
     window.MTS.syncTabs(ix);
     const block = (data.by_index || {})[ix] || (ix === "SPX" ? {
       name: "S&P 500", top10: data.top10, flop10: data.flop10, session_date: data.session_date, currency: "USD",
@@ -62,7 +72,16 @@
     const since = data.wiederholer_since || "06.11.2026";
     const sess = block.session_date || "";
     const ccy = block.currency ? ` · Kurse in ${block.currency}` : "";
-    const wiederholer = ix === "SPX" ? `
+    let top = block.top10;
+    let flop = block.flop10;
+    if (tf !== 1) {
+      const ranked = (data.rows || []).filter((r) => (r.ix || []).includes(ix)).map((r) => ({
+        t: r.t, n: r.n, s: r.s, p: r.p, ccy: r.ccy, c: periodChange(r, tf),
+      })).filter((r) => r.c != null);
+      top = ranked.slice().sort((a, b) => b.c - a.c).slice(0, 10);
+      flop = ranked.slice().sort((a, b) => a.c - b.c).slice(0, 10);
+    }
+    const wiederholer = ix === "SPX" && tf === 1 ? `
       <article class="card wh-card">
         <div class="tf-head">
           <h2>Wiederholer seit ${escapeHtml(deDate(since))}</h2>
@@ -76,21 +95,31 @@
       <p class="note">Der Wiederholer-Zähler läuft nur für den S&P 500.</p>`;
     $("#app").innerHTML = `
       ${window.MTS.indexSwitch(ix)}
+      <div class="tool-row">${window.MTS.tfSwitcher()}${window.MTS.exportButton()}</div>
       <div class="tf-title-row">
-        <p class="kicker">Tages-Top und -Flop  ·  ${escapeHtml(block.name || window.MTS.indexName(ix))}</p>
-        <p class="muted">Letzte Sitzung ${escapeHtml(sess)}${escapeHtml(ccy)}</p>
+        <p class="kicker">${tf === 1 ? "Tages-Top und -Flop" : window.MTS.periodName(tf)}  ·  ${escapeHtml(block.name || window.MTS.indexName(ix))}</p>
+        <p class="muted">${tf === 1 ? "Letzte Sitzung" : "Handelstage"} ${escapeHtml(sess)}${escapeHtml(ccy)}</p>
       </div>
       <div class="tf-grid">
-        ${bars("Top 10", block.top10, true)}
-        ${bars("Flop 10", block.flop10, false)}
+        ${bars("Top 10", top, true)}
+        ${bars("Flop 10", flop, false)}
       </div>
       ${wiederholer}
     `;
+    window.__mtsTop = {
+      title: `Top / Flop · ${block.name || window.MTS.indexName(ix)}`,
+      subtitle: `${window.MTS.periodName(tf)} · ${sess}`,
+      top: (top || []).map((r) => ({ t: r.t, n: r.n, pct: window.MTS.dePct(r.c), color: window.MTS.pctColor(r.c) })),
+      flop: (flop || []).map((r) => ({ t: r.t, n: r.n, pct: window.MTS.dePct(r.c), color: window.MTS.pctColor(r.c) })),
+    };
   }
 
+  let latest = null;
   async function start() {
     try {
-      const data = await loadJSON("data/stocks.json");
+      const [data, loaded] = await Promise.all([loadJSON("data/stocks.json"), window.MTS.returns()]);
+      pack = loaded;
+      latest = data;
       render(data);
     } catch (err) {
       $("#app").innerHTML = `<p class="error">Die Kursdaten konnten nicht geladen werden. Bitte später erneut öffnen.</p>`;
@@ -103,5 +132,17 @@
     if (row) location.href = `aktie.html?t=${encodeURIComponent(row.dataset.t)}`;
   });
   start();
-  setInterval(() => { loadJSON("data/stocks.json").then(render).catch(() => {}); }, window.MTS.REFRESH_MS);
+  setInterval(() => { loadJSON("data/stocks.json").then((d) => { latest = d; render(d); }).catch(() => {}); }, window.MTS.REFRESH_MS);
+  document.addEventListener("mts-tf", () => { if (latest) render(latest); });
+  document.addEventListener("click", async (e) => {
+    if (!e.target.closest("[data-export]") || !window.__mtsTop) return;
+    const btn = e.target.closest("[data-export]");
+    btn.disabled = true;
+    try {
+      await window.MTS.saveCard({ kind: "topflop", ...window.__mtsTop, filename: "mts-topflop.png" });
+    } catch (err) {
+      console.error(err);
+    }
+    btn.disabled = false;
+  });
 })();

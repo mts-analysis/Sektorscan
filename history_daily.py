@@ -198,6 +198,81 @@ def write_earnings(display_tickers: list[str]) -> dict:
     return payload
 
 
+def _pct_back(values: list[float], n: int):
+    if len(values) <= n:
+        return None
+    last = values[-1]
+    prev = values[-1 - n]
+    if prev is None or prev == 0 or last is None:
+        return None
+    return round((last / prev - 1.0) * 100.0, 2)
+
+
+def _weighted(pairs: list[tuple[float, float]]):
+    num = den = 0.0
+    for weight, value in pairs:
+        if value is None:
+            continue
+        w = weight if weight and weight > 0 else 1.0
+        num += w * value
+        den += w
+    if den <= 0:
+        return None
+    return round(num / den, 2)
+
+
+def write_returns_from_shards() -> Path:
+    """5- and 20-session moves from the shard files. No extra Yahoo call."""
+    from stock_data import MARKETS, SECTOR_ORDER
+
+    prices: dict[str, list[float]] = {}
+    for path in sorted(HIST.glob("s*.json")):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        for ticker, pts in (doc.get("series") or {}).items():
+            prices[ticker] = [p[1] for p in pts if p and p[1] is not None]
+    if not prices:
+        raise RuntimeError("keine Shard-Reihen")
+    px = {}
+    for ticker, vals in prices.items():
+        d5, d20 = _pct_back(vals, 5), _pct_back(vals, 20)
+        if d5 is None and d20 is None:
+            continue
+        px[ticker] = [d5, d20]
+    meta = {}
+    if STOCKS.exists():
+        doc = json.loads(STOCKS.read_text(encoding="utf-8"))
+        meta = {r["t"]: r for r in doc.get("rows") or []}
+    indices = {}
+    sectors: dict[str, dict] = {}
+    for market in MARKETS:
+        ix = market["id"]
+        members = [r for r in meta.values() if ix in (r.get("ix") or [])]
+        indices[ix] = [
+            _weighted([(r.get("mc"), (px.get(r["t"]) or [None, None])[0]) for r in members]),
+            _weighted([(r.get("mc"), (px.get(r["t"]) or [None, None])[1]) for r in members]),
+        ]
+        sectors[ix] = {}
+        for name in SECTOR_ORDER:
+            group = [r for r in members if r.get("s") == name]
+            if not group:
+                continue
+            sectors[ix][name] = [
+                _weighted([(r.get("mc"), (px.get(r["t"]) or [None, None])[0]) for r in group]),
+                _weighted([(r.get("mc"), (px.get(r["t"]) or [None, None])[1]) for r in group]),
+            ]
+    payload = {
+        "updated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "note": "5 und 20 Handelstage, Schlusskurs gegen den Schluss davor, Sektoren und Indizes nach Börsenwert gewichtet.",
+        "px": px,
+        "ix": indices,
+        "sec": sectors,
+    }
+    out = HIST / "returns.json"
+    out.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    print(f"returns.json {len(px)} Titel {out.stat().st_size/1024:.0f} KB", flush=True)
+    return out
+
+
 def main() -> int:
     book = load_universe()
     display = {rec["t"]: rec for rec in book.values()}
@@ -251,8 +326,19 @@ def main() -> int:
     print("Nächster Termin je Index:", by_ix, flush=True)
     print(f"Davon in {HORIZON_DAYS} Tagen:", near, flush=True)
     print(f"Earnings-Datei {EARNINGS_OUT.stat().st_size/1024:.0f} KB, Titel {len(fixed)}", flush=True)
+    try:
+        write_returns_from_shards()
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: returns.json nicht geschrieben ({e!r})", file=sys.stderr)
     return 0
 
 
 if __name__ == "__main__":
+    if "--returns-only" in sys.argv:
+        try:
+            write_returns_from_shards()
+        except Exception as e:  # noqa: BLE001
+            print(f"STOP returns: {e!r}", file=sys.stderr)
+            raise SystemExit(1)
+        raise SystemExit(0)
     raise SystemExit(main())

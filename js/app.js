@@ -153,10 +153,21 @@
     </article>`;
   }
 
-  function renderMarket(market, switcher, data) {
+  function periodPct(pair, tf) {
+    if (!pair) return null;
+    return tf === 5 ? pair[0] : pair[1];
+  }
+
+  function renderMarket(market, switcher, data, tools, tf, pack) {
     setStand(data);
-    const upCls = market.pct >= 0 ? "is-up" : "is-down";
-    const sectors = Array.isArray(market.sectors) ? market.sectors : [];
+    const usePeriod = tf && tf !== 1;
+    const indexPct = usePeriod ? periodPct(pack && pack.ix && pack.ix[market.id], tf) : market.pct;
+    const upCls = indexPct >= 0 ? "is-up" : "is-down";
+    const sectors = (Array.isArray(market.sectors) ? market.sectors : []).map((s) => {
+      if (!usePeriod) return s;
+      const pct = periodPct(pack && pack.sec && pack.sec[market.id] && pack.sec[market.id][s.name], tf);
+      return { ...s, pct };
+    }).filter((s) => s.pct != null);
     const nSectors = sectors.length;
     const upSectors = sectors.filter((s) => s.pct > 0).length;
     const nStocks = market.n_stocks || 0;
@@ -169,19 +180,21 @@
         <div class="tile-top">
           <div>
             <h3 class="tile-name">${escapeHtml(s.name)}</h3>
-            <p class="tile-ticker">${s.n} Titel</p>
+            ${s.n ? `<p class="tile-ticker">${s.n} Titel</p>` : ""}
           </div>
         </div>
         <p class="tile-pct" style="color:${col}">${dePct(s.pct)}</p>
-        ${sparkSVG(s.sparkline, col)}
+        ${usePeriod || !s.sparkline ? "" : sparkSVG(s.sparkline, col)}
       </article>`;
     }).join("");
     const priceBlock = market.price == null
       ? `<p class="hero-line">Indexstand gerade nicht verfügbar</p>`
       : `<p class="spx-price">${deNum(market.price)}</p>
-         <p class="spx-pct ${upCls}">${dePct(market.pct)}</p>`;
+         <p class="spx-pct ${upCls}">${indexPct == null ? "–" : dePct(indexPct)}</p>`;
+    const periodNote = usePeriod ? `${window.MTS.periodName(tf)}, nach Börsenwert gewichtet` : "Ø Tagesänderung der Titel in der letzten Sitzung";
     $("#app").innerHTML = `
       ${switcher}
+      ${tools || ""}
       <div class="main-layout">
         <section class="hero">
           <article class="card">
@@ -195,24 +208,40 @@
         <section>
           <div class="section-head">
             <h2>Sektor-Übersicht</h2>
-            <p>Ø Tagesänderung der Titel in der letzten Sitzung</p>
+            <p>${periodNote}</p>
           </div>
           <div class="grid">${tiles}</div>
         </section>
       </div>`;
   }
 
-  function render(data) {
+  async function render(data) {
     const ix = window.MTS ? window.MTS.pageIndex() : "SPX";
     const switcher = window.MTS ? window.MTS.indexSwitch(ix) : "";
+    const tf = window.MTS ? window.MTS.timeframe() : 1;
+    const pack = tf === 1 || !window.MTS ? null : await window.MTS.returns();
+    const tools = window.MTS ? `<div class="tool-row">${window.MTS.tfSwitcher()}${window.MTS.exportButton()}</div>` : "";
     if (window.MTS) window.MTS.syncTabs(ix);
-    if (ix !== "SPX") {
-      const market = (data.markets || []).find((m) => m.id === ix);
+    if (ix !== "SPX" || tf !== 1) {
+      const market = (data.markets || []).find((m) => m.id === ix) || (ix === "SPX" ? {
+        id: "SPX", name: data.index.name, price: data.index.price, pct: data.index.pct,
+        sectors: (data.sectors || []).map((s) => ({ name: s.name, pct: s.pct, n: null })),
+        up_stocks: null, n_stocks: null, barometer: data.barometer,
+      } : null);
       if (!market) {
-        $("#app").innerHTML = `${switcher}<p class="error">Für diesen Index liegen gerade keine Daten vor.</p>`;
+        $("#app").innerHTML = `${switcher}${tools}<p class="error">Für diesen Index liegen gerade keine Daten vor.</p>`;
         return;
       }
-      renderMarket(market, switcher, data);
+      if (ix === "SPX" && tf !== 1) {
+        market.sectors = window.MTS.SECTORS.map((name) => ({
+          name,
+          pct: periodPct(pack && pack.sec && pack.sec.SPX && pack.sec.SPX[name], tf),
+          n: null,
+          sparkline: [],
+        })).filter((s) => s.pct != null);
+      }
+      renderMarket(market, switcher, data, tools, tf, pack);
+      rememberCard(ix, tf, market);
       return;
     }
     setStand(data);
@@ -241,6 +270,7 @@
 
     $("#app").innerHTML = `
       ${switcher}
+      ${tools}
       <div class="main-layout">
         <section class="hero">
           <article class="card">
@@ -260,6 +290,20 @@
           <div class="grid">${tiles}</div>
         </section>
       </div>`;
+    rememberCard("SPX", 1, { name: idx.name, price: idx.price, pct: idx.pct, sectors: data.sectors }, data);
+  }
+
+  function rememberCard(ix, tf, market) {
+    const tiles = (market.sectors || []).map((s) => ({
+      name: s.name,
+      pct: s.pct == null ? "–" : dePct(s.pct),
+      color: s.pct == null ? "#9aa3ad" : pctColor(s.pct),
+    }));
+    window.__mtsSectors = {
+      title: `Sektoren · ${market.name || ix}`,
+      subtitle: `${window.MTS ? window.MTS.periodName(tf) : "Tag"} · ${new Date().toLocaleDateString("de-DE")}`,
+      tiles,
+    };
   }
 
   function showError(msg) {
@@ -274,8 +318,11 @@
     if (!data || !data.index || !Array.isArray(data.sectors)) {
       throw new Error("Datenformat unerwartet");
     }
+    latest = data;
     render(data);
   }
+
+  let latest = null;
 
   async function tick() {
     try {
@@ -288,4 +335,16 @@
 
   tick();
   setInterval(tick, REFRESH_MS);
+  document.addEventListener("mts-tf", () => { if (latest) render(latest); });
+  document.addEventListener("click", async (e) => {
+    if (!e.target.closest("[data-export]") || !window.__mtsSectors) return;
+    const btn = e.target.closest("[data-export]");
+    btn.disabled = true;
+    try {
+      await window.MTS.saveCard({ kind: "sectors", ...window.__mtsSectors, filename: "mts-sektoren.png" });
+    } catch (err) {
+      console.error(err);
+    }
+    btn.disabled = false;
+  });
 })();
