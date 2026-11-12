@@ -1,11 +1,11 @@
 {
-  "updated_at_utc": "2026-11-12T08:21:11Z",
+  "updated_at_utc": "2026-11-12T09:06:44Z",
   "stand": {
-    "unix": 1794430800,
-    "iso_utc": "2026-11-11T21:00:00Z",
-    "et": "11.11.2026, 16:00 ET",
-    "mez": "11.11.2026, 22:00 MEZ",
-    "label": "11.11.2026, 16:00 ET / 22:00 MEZ"
+    "unix": 1794433323,
+    "iso_utc": "2026-11-11T21:42:03Z",
+    "et": "11.11.2026, 16:42 ET",
+    "mez": "11.11.2026, 22:42 MEZ",
+    "label": "11.11.2026, 16:42 ET / 22:42 MEZ"
   },
   "stand_note": "ca. 15 Min. verzögert",
   "source": "Yahoo Finance (unofficial chart API, Schlusskurs bzw. zeitverzögerter Kurs, unverzögert nicht verfügbar)",
@@ -941,11 +941,11 @@
         7619.3799
       ],
       "stand": {
-        "unix": 1794430800,
-        "iso_utc": "2026-11-11T21:00:00Z",
-        "et": "11.11.2026, 16:00 ET",
-        "mez": "11.11.2026, 22:00 MEZ",
-        "label": "11.11.2026, 16:00 ET / 22:00 MEZ"
+        "unix": 1794433323,
+        "iso_utc": "2026-11-11T21:42:03Z",
+        "et": "11.11.2026, 16:42 ET",
+        "mez": "11.11.2026, 22:42 MEZ",
+        "label": "11.11.2026, 16:42 ET / 22:42 MEZ"
       },
       "up": 10,
       "down": 1,
@@ -977,8 +977,8 @@
       "id": "DAX",
       "name": "DAX 40",
       "ticker": "^GDAXI",
-      "price": 26908.97,
-      "pct": 0.92,
+      "price": 26927.29,
+      "pct": 0.99,
       "session_date": "2026-11-12",
       "sparkline": [
         23954.9297,
@@ -1040,42 +1040,42 @@
         25864.6191,
         25820.3594,
         26347.4492,
-        26908.9707
+        26927.2891
       ],
       "stand": {
-        "unix": 1794470771,
-        "iso_utc": "2026-11-12T08:06:11Z",
-        "et": "12.11.2026, 03:06 ET",
-        "mez": "12.11.2026, 09:06 MEZ",
-        "label": "12.11.2026, 03:06 ET / 09:06 MEZ"
+        "unix": 1794473503,
+        "iso_utc": "2026-11-12T08:51:43Z",
+        "et": "12.11.2026, 03:51 ET",
+        "mez": "12.11.2026, 09:51 MEZ",
+        "label": "12.11.2026, 03:51 ET / 09:51 MEZ"
       },
       "currency": "EUR",
       "price_currency": "EUR",
       "stock_session": "2026-11-12",
       "up_stocks": 34,
-      "down_stocks": 6,
+      "down_stocks": 5,
       "n_stocks": 40,
       "barometer": {
-        "score": 82,
+        "score": 85,
         "zone": 4,
         "zone_name": "Bullenmodus",
-        "prev_score": 69,
+        "prev_score": 75,
         "prev_zone_name": "Rückenwind",
         "components": {
           "breadth": 95.0,
-          "trend": 99.7,
-          "momentum": 90.0,
-          "risk": 42.0
+          "trend": 99.8,
+          "momentum": 91.3,
+          "risk": 55.0
         },
         "session_date": "2026-11-12",
-        "prev_session_date": "2026-11-10",
+        "prev_session_date": "2026-11-11",
         "source": "Yahoo Finance, gleiche Formel (Breite, Trend, Momentum, Risiko), Sektoren gleichgewichtet aus den Indexmitgliedern"
       },
       "sectors": [
         {
           "name": "Technologie",
           "n": 2,
-          "pct": 1.8,
+          "pct": -0.81,
           "sparkline": [
             100.0,
             99.4,
@@ -1105,13 +1105,14 @@
             92.69,
             95.15,
             95.02,
-            96.62
+            97.66,
+            97.05
           ]
         },
         {
           "name": "Finanzen",
           "n": 6,
-          "pct": 1.07,
+          "pct": 0.7,
           "sparkline": [
             100.0,
             100.63,
@@ -1141,13 +1142,14 @@
             107.7,
             108.4,
             110.33,
-            111.52
+            110.7,
+            111.5
           ]
         },
         {
           "name": "Gesundheit",
           "n": 6,
-          "pct": 1.62,
+          "pct": 1.18,
           "sparkline": [
             100.0,
             99.64,
@@ -1177,13 +1179,14 @@
             114.87,
             114.08,
             114.5,
-            116.33
+            114.75,
+            116.13
           ]
         },
         {
           "name": "Zyklischer Konsum",
           "n": 6,
-          "pct": 1.34,
+          "pct": 1.39,
           "sparkline": [
             100.0,
             100.41,
@@ -1213,13 +1216,14 @@
             111.05,
             111.86,
             111.86,
-            113.36
+            111.75,
+            113.39
           ]
         },
         {
           "name": "Basiskonsum",
           "n": 2,
-          "pct": 0.29,
+          "pct": 0.38,
           "sparkline": [
             100.0,
             99.78,
@@ -1249,13 +1253,14 @@
             114.09,
             113.79,
             117.01,
-            117.37
+            116.51,
+            116.93
           ]
         },
         {
           "name": "Industrie",
           "n": 9,
-          "pct": 2.06,
+          "pct": 0.9,
           "sparkline": [
             100.0,
             100.21,
@@ -1285,13 +1290,14 @@
             94.99,
             97.65,
             98.29,
-            100.27
+            99.35,
+            100.28
           ]
         },
         {
           "name": "Grundstoffe",
           "n": 4,
-          "pct": -0.05,
+          "pct": 0.98,
           "sparkline": [
             100.0,
             99.96,
@@ -1321,13 +1327,14 @@
             109.33,
             109.34,
             110.09,
-            110.04
+            109.34,
+            110.42
           ]
         },
         {
           "name": "Versorger",
           "n": 2,
-          "pct": 0.14,
+          "pct": 0.43,
           "sparkline": [
             100.0,
             99.42,
@@ -1357,13 +1364,14 @@
             104.83,
             105.85,
             105.43,
-            105.48
+            105.37,
+            105.86
           ]
         },
         {
           "name": "Immobilien",
           "n": 1,
-          "pct": 0.85,
+          "pct": 1.5,
           "sparkline": [
             100.0,
             100.51,
@@ -1393,13 +1401,14 @@
             100.51,
             102.47,
             101.69,
-            102.56
+            101.13,
+            102.65
           ]
         },
         {
           "name": "Kommunikation",
           "n": 2,
-          "pct": 1.69,
+          "pct": 0.79,
           "sparkline": [
             100.0,
             99.96,
@@ -1429,7 +1438,8 @@
             113.77,
             114.02,
             114.48,
-            116.35
+            115.57,
+            116.37
           ]
         }
       ],
@@ -2358,8 +2368,8 @@
       "id": "UKX",
       "name": "FTSE 100",
       "ticker": "^FTSE",
-      "price": 10873.99,
-      "pct": 0.36,
+      "price": 10861.82,
+      "pct": 0.24,
       "session_date": "2026-11-12",
       "sparkline": [
         10265.2998,
@@ -2421,42 +2431,42 @@
         10638.4004,
         10673.9004,
         10751.5996,
-        10873.9902
+        10861.8203
       ],
       "stand": {
-        "unix": 1794470771,
-        "iso_utc": "2026-11-12T08:06:11Z",
-        "et": "12.11.2026, 03:06 ET",
-        "mez": "12.11.2026, 09:06 MEZ",
-        "label": "12.11.2026, 03:06 ET / 09:06 MEZ"
+        "unix": 1794473503,
+        "iso_utc": "2026-11-12T08:51:43Z",
+        "et": "12.11.2026, 03:51 ET",
+        "mez": "12.11.2026, 09:51 MEZ",
+        "label": "12.11.2026, 03:51 ET / 09:51 MEZ"
       },
       "currency": "GBP",
       "price_currency": "GBP",
       "stock_session": "2026-11-12",
-      "up_stocks": 85,
-      "down_stocks": 13,
+      "up_stocks": 58,
+      "down_stocks": 38,
       "n_stocks": 100,
       "barometer": {
-        "score": 73,
+        "score": 69,
         "zone": 3,
         "zone_name": "Rückenwind",
-        "prev_score": 58,
-        "prev_zone_name": "Neutral",
+        "prev_score": 70,
+        "prev_zone_name": "Rückenwind",
         "components": {
-          "breadth": 86.4,
-          "trend": 80.2,
-          "momentum": 70.3,
-          "risk": 53.8
+          "breadth": 72.7,
+          "trend": 79.5,
+          "momentum": 69.4,
+          "risk": 55.4
         },
         "session_date": "2026-11-12",
-        "prev_session_date": "2026-11-10",
+        "prev_session_date": "2026-11-11",
         "source": "Yahoo Finance, gleiche Formel (Breite, Trend, Momentum, Risiko), Sektoren gleichgewichtet aus den Indexmitgliedern"
       },
       "sectors": [
         {
           "name": "Technologie",
           "n": 2,
-          "pct": 2.32,
+          "pct": -0.52,
           "sparkline": [
             100.0,
             101.08,
@@ -2486,13 +2496,14 @@
             101.73,
             101.62,
             101.95,
-            104.21
+            104.57,
+            104.14
           ]
         },
         {
           "name": "Finanzen",
           "n": 25,
-          "pct": 0.92,
+          "pct": -0.1,
           "sparkline": [
             100.0,
             100.13,
@@ -2522,13 +2533,14 @@
             99.16,
             100.79,
             101.0,
-            101.93
+            102.06,
+            101.98
           ]
         },
         {
           "name": "Gesundheit",
           "n": 5,
-          "pct": 2.17,
+          "pct": 1.22,
           "sparkline": [
             100.0,
             100.19,
@@ -2558,13 +2570,14 @@
             111.96,
             111.28,
             111.32,
-            113.76
+            112.04,
+            113.4
           ]
         },
         {
           "name": "Zyklischer Konsum",
           "n": 11,
-          "pct": 1.78,
+          "pct": 1.39,
           "sparkline": [
             100.0,
             99.13,
@@ -2594,13 +2607,14 @@
             110.41,
             111.09,
             111.33,
-            113.25
+            111.25,
+            112.77
           ]
         },
         {
           "name": "Basiskonsum",
           "n": 10,
-          "pct": 0.72,
+          "pct": 0.57,
           "sparkline": [
             100.0,
             99.74,
@@ -2630,13 +2644,14 @@
             112.76,
             112.07,
             112.69,
-            113.48
+            112.54,
+            113.2
           ]
         },
         {
           "name": "Industrie",
           "n": 18,
-          "pct": 1.54,
+          "pct": 0.09,
           "sparkline": [
             100.0,
             99.97,
@@ -2666,13 +2681,14 @@
             100.42,
             101.97,
             102.33,
-            103.87
+            103.2,
+            103.29
           ]
         },
         {
           "name": "Energie",
           "n": 4,
-          "pct": 0.95,
+          "pct": -0.47,
           "sparkline": [
             100.0,
             101.05,
@@ -2702,13 +2718,14 @@
             98.52,
             98.4,
             97.79,
-            98.7
+            99.23,
+            98.75
           ]
         },
         {
           "name": "Grundstoffe",
           "n": 7,
-          "pct": -1.21,
+          "pct": -2.39,
           "sparkline": [
             100.0,
             101.19,
@@ -2738,13 +2755,14 @@
             92.97,
             96.26,
             94.07,
-            92.95
+            95.45,
+            93.21
           ]
         },
         {
           "name": "Versorger",
           "n": 6,
-          "pct": 0.55,
+          "pct": 0.56,
           "sparkline": [
             100.0,
             100.24,
@@ -2774,13 +2792,14 @@
             104.23,
             105.33,
             104.76,
-            105.31
+            105.06,
+            105.64
           ]
         },
         {
           "name": "Immobilien",
           "n": 5,
-          "pct": 0.99,
+          "pct": 0.91,
           "sparkline": [
             100.0,
             100.2,
@@ -2810,13 +2829,14 @@
             106.81,
             107.26,
             107.05,
-            108.12
+            107.22,
+            108.21
           ]
         },
         {
           "name": "Kommunikation",
           "n": 7,
-          "pct": 1.28,
+          "pct": 0.76,
           "sparkline": [
             100.0,
             100.48,
@@ -2846,12 +2866,13 @@
             103.74,
             104.39,
             104.15,
-            105.53
+            105.42,
+            106.23
           ]
         }
       ],
-      "up": 10,
-      "down": 1,
+      "up": 7,
+      "down": 4,
       "flat": 0
     }
   ]
