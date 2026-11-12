@@ -18,7 +18,8 @@
     nearLow: null,
     wtMin: null,
     wfMin: null,
-    indexes: new Set(), // SPX / NDX / DJI
+    indexes: new Set(),
+    sawIndexParam: false,
     mc: new Set(), // gross mittel klein
     earnings: false,
     sortKey: "c",
@@ -37,8 +38,11 @@
     if (p.has("nearLow")) state.nearLow = Number(p.get("nearLow"));
     if (p.has("wtMin")) state.wtMin = Number(p.get("wtMin"));
     if (p.has("wfMin")) state.wfMin = Number(p.get("wfMin"));
-    const ix = p.get("index") || p.get("ix");
-    if (ix) ix.split(",").forEach((s) => state.indexes.add(s));
+    if (p.has("index") || p.has("ix")) {
+      state.sawIndexParam = true;
+      const ix = p.get("index") || p.get("ix");
+      if (ix && ix !== "all") ix.split(",").forEach((s) => state.indexes.add(s));
+    }
     const mc = p.get("mc");
     if (mc) mc.split(",").forEach((s) => state.mc.add(s));
     if (p.get("ew") === "1" || p.get("earnings") === "1") state.earnings = true;
@@ -66,7 +70,7 @@
       }
       if (state.wtMin !== null && !(r.wt >= state.wtMin)) return false;
       if (state.wfMin !== null && !(r.wf >= state.wfMin)) return false;
-      if (state.indexes.size && !r.ix.some((x) => state.indexes.has(x))) return false;
+      if (state.indexes.size && !(r.ix || []).some((x) => state.indexes.has(x))) return false;
       if (state.mc.size) {
         const b = mcBucket(r.mc);
         if (!b || !state.mc.has(b)) return false;
@@ -123,7 +127,8 @@
     if (state.nearLow !== null) bits.push(`≤ ${deNum(state.nearLow, 0)} % über 52W-Tief`);
     if (state.wtMin !== null) bits.push(`≥ ${state.wtMin}× Top`);
     if (state.wfMin !== null) bits.push(`≥ ${state.wfMin}× Flop`);
-    if (state.indexes.size) bits.push([...state.indexes].map((x) => ({ SPX: "S&P 500", NDX: "Nasdaq-100", DJI: "Dow 30" }[x] || x)).join(", "));
+    if (state.indexes.size) bits.push([...state.indexes].map((x) => window.MTS.indexName(x)).join(", "));
+    else bits.push("alle Indizes");
     if (state.mc.size) bits.push([...state.mc].map((x) => ({ gross: "groß", mittel: "mittel", klein: "klein" }[x])).join(", "));
     if (state.earnings) bits.push("Earnings diese Woche");
     return bits;
@@ -137,7 +142,7 @@
     app.innerHTML = `
       <section class="scanner-head">
         <div class="scanner-title-row">
-          <p class="kicker">Aktien-Scanner  ·  S&P 500</p>
+          <p class="kicker">Aktien-Scanner  ·  ${escapeHtml(state.indexes.size ? [...state.indexes].map((id) => window.MTS.indexName(id)).join(", ") : "alle Indizes")}</p>
           <p class="hit-count" id="hit-count">${rows.length} von ${total} Treffern</p>
         </div>
         <label class="search-wrap">
@@ -145,6 +150,8 @@
           <input type="search" id="q" class="search" placeholder="Ticker oder Name" value="${escapeHtml(state.q)}" enterkeyhint="search">
         </label>
         <div class="chip-row" id="chip-row">
+          ${window.MTS.INDICES.map((ix) => chip(ix.name, state.indexes.has(ix.id), `data-ix="${ix.id}"`)).join("")}
+          ${chip("Alle", state.indexes.size === 0, 'data-ix-all="1"')}
           ${chip("Sektor", state.sectors.size > 0, 'data-open="sektor"')}
           ${chip("> +3 %", pctOn3, 'data-preset="pct3"')}
           ${chip("< −3 %", pctOnM3, 'data-preset="pctm3"')}
@@ -152,7 +159,6 @@
           ${chip("Volumen vs. Schnitt", state.rvMin !== null, 'data-open="vol"')}
           ${chip("Nähe 52W-Hoch/Tief", state.nearHigh !== null || state.nearLow !== null, 'data-open="range52"')}
           ${chip("Wiederholer", state.wtMin !== null || state.wfMin !== null, 'data-open="wh"')}
-          ${chip("Index", state.indexes.size > 0, 'data-open="index"')}
           ${chip("Börsenwert", state.mc.size > 0, 'data-open="mc"')}
           ${chip("Earnings diese Woche", state.earnings, 'data-preset="ew"')}
         </div>
@@ -181,7 +187,7 @@
              ${chip("≤ 5 % über Tief", state.nearLow === 5, 'data-nl="5"')}
              <button type="button" class="linkish" data-clear="range52">Zurücksetzen</button>
            </div>`)}
-        ${panel("wh", `Wiederholer seit ${state.data.wiederholer_since || "06.11.2026"} (${nDays} Handelstage)`,
+        ${panel("wh", `Wiederholer nur S&P 500, seit ${state.data.wiederholer_since || "06.11.2026"} (${nDays} Handelstage)`,
           `<div class="chip-row">
              ${chip("≥ 2 Tage Top", state.wtMin === 2, 'data-wt="2"')}
              ${chip("≥ 3 Tage Top", state.wtMin === 3, 'data-wt="3"')}
@@ -189,21 +195,14 @@
              ${chip("≥ 3 Tage Flop", state.wfMin === 3, 'data-wf="3"')}
              <button type="button" class="linkish" data-clear="wh">Zurücksetzen</button>
            </div>`)}
-        ${panel("index", "Indexzugehörigkeit (Schnittmenge mit dem S&P 500)",
-          `<div class="chip-row">
-             ${chip("S&P 500", state.indexes.has("SPX"), 'data-ix="SPX"')}
-             ${chip("Nasdaq-100", state.indexes.has("NDX"), 'data-ix="NDX"')}
-             ${chip("Dow Jones 30", state.indexes.has("DJI"), 'data-ix="DJI"')}
-             <button type="button" class="linkish" data-clear="index">Zurücksetzen</button>
-           </div>`)}
-        ${panel("mc", "Börsenwert (Yahoo marketCap; Schwellen in den Hinweisen)",
+        ${panel("mc", "Börsenwert in USD (Yahoo-Devisenkurse; Schwellen in den Hinweisen)",
           `<div class="chip-row">
              ${chip("Groß (≥ 10 Mrd. $)", state.mc.has("gross"), 'data-mc="gross"')}
              ${chip("Mittel (2–10 Mrd. $)", state.mc.has("mittel"), 'data-mc="mittel"')}
              ${chip("Klein (< 2 Mrd. $)", state.mc.has("klein"), 'data-mc="klein"')}
              <button type="button" class="linkish" data-clear="mc">Zurücksetzen</button>
            </div>`)}
-        <p class="note">Kurse ca. 15 Min. verzögert · Aktualisierung alle 5 Min.${activeSummary().length ? " · Filter: " + activeSummary().join(" · ") : ""}</p>
+        <p class="note">Kurse in Landeswährung, letzte Sitzung des jeweiligen Marktes, ca. 15 Min. verzögert. Börsenwert in USD.${activeSummary().length ? " · Filter: " + activeSummary().join(" · ") : ""}</p>
       </section>
       <div class="table-shell">
         <div class="table-card" id="table-card"></div>
@@ -235,7 +234,7 @@
         <td class="mono">${escapeHtml(r.t)}</td>
         <td>${escapeHtml(r.n)}</td>
         <td class="muted">${escapeHtml(r.s)}</td>
-        <td class="num">${deNum(r.p)}</td>
+        <td class="num">${window.MTS.money(r.p, r.ccy)}</td>
         <td class="num" style="color:${col}">${dePct(r.c)}</td>
         <td class="num muted">${r.rv == null ? "–" : deNum(r.rv)}</td>
       </tr>`;
@@ -261,6 +260,15 @@
     if (!state.data) return;
     const rows = sortRows(filtered());
     renderShell(rows, state.data.n || state.data.rows.length);
+    if (state.indexes.size === 1) {
+      const id = [...state.indexes][0];
+      const block = (state.data.by_index || {})[id];
+      if (block && block.stand) setStand({ stand: block.stand });
+      window.MTS.syncTabs(id);
+    } else {
+      setStand(state.data);
+      window.MTS.syncTabs("SPX");
+    }
     const chart = params().get("chart");
     if (chart) openChart(chart);
   }
@@ -304,6 +312,16 @@
       if (btn.dataset.preset === "ew") {
         state.earnings = !state.earnings;
         refresh();
+        return;
+      }
+      if (btn.dataset.ix) {
+        toggleSet(state.indexes, btn.dataset.ix);
+        refresh();
+        return;
+      }
+      if (btn.dataset.ixAll) {
+        state.indexes.clear();
+        refresh();
       }
     });
     $$(".filter-panel").forEach((p) => {
@@ -330,7 +348,6 @@
         if (btn.dataset.clear === "vol") { state.rvMin = null; refresh(); }
         if (btn.dataset.clear === "range52") { state.nearHigh = state.nearLow = null; refresh(); }
         if (btn.dataset.clear === "wh") { state.wtMin = state.wfMin = null; refresh(); }
-        if (btn.dataset.clear === "index") { state.indexes.clear(); refresh(); }
         if (btn.dataset.clear === "mc") { state.mc.clear(); refresh(); }
       });
     });
@@ -359,7 +376,7 @@
     const modal = $("#chart-modal");
     if (!r || !modal) return;
     const col = pctColor(r.c);
-    const ix = (r.ix || []).map((x) => ({ SPX: "S&P 500", NDX: "Nasdaq-100", DJI: "Dow 30" }[x] || x)).join(" · ");
+    const ix = (r.ix || []).map((x) => window.MTS.indexName(x)).join(" · ");
     modal.hidden = false;
     modal.innerHTML = `
       <div class="modal-card" role="dialog" aria-modal="true" aria-label="Kursverlauf ${escapeHtml(r.t)}">
@@ -370,7 +387,7 @@
           </div>
           <button type="button" class="chip" id="modal-close">Schließen</button>
         </div>
-        <p class="modal-px">${deNum(r.p)}  <span style="color:${col}">${dePct(r.c)}</span></p>
+        <p class="modal-px">${window.MTS.money(r.p, r.ccy)}  <span style="color:${col}">${dePct(r.c)}</span></p>
         ${sparkSVG(r.sp, col, 640, 180)}
         <p class="note">Letzte 30 Handelstage, täglicher Schlusskurs.</p>
         <ul class="stat-list">
@@ -378,7 +395,7 @@
           <li>Abstand 52W-Hoch: ${r.dH == null ? "–" : dePct(r.dH)}</li>
           <li>Abstand 52W-Tief: ${r.dL == null ? "–" : dePct(r.dL)}</li>
           <li>Börsenwert: ${r.mc == null ? "nicht verfügbar" : deNum(r.mc, 1) + " Mrd. USD"}</li>
-          <li>Index: ${escapeHtml(ix || "S&P 500")}</li>
+          <li>Index: ${escapeHtml(ix || "–")}</li>
           <li>Wiederholer: ${r.wt}× Top, ${r.wf}× Flop</li>
         </ul>
       </div>`;
@@ -393,6 +410,7 @@
       const data = await loadJSON("data/stocks.json");
       state.data = data;
       setStand(data);
+      if (!state.sawIndexParam) state.indexes.add("SPX");
       refresh();
     } catch (err) {
       $("#app").innerHTML = `<p class="error">Die Kursdaten konnten nicht geladen werden. Bitte später erneut öffnen.</p>`;
@@ -401,5 +419,5 @@
   }
 
   start();
-  setInterval(() => { if (state.data) loadJSON("data/stocks.json").then((d) => { state.data = d; setStand(d); refresh(); }).catch(() => {}); }, window.MTS.REFRESH_MS);
+  setInterval(() => { if (state.data) loadJSON("data/stocks.json").then((d) => { state.data = d; refresh(); }).catch(() => {}); }, window.MTS.REFRESH_MS);
 })();

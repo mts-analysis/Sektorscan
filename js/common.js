@@ -75,6 +75,40 @@
     params() {
       return new URLSearchParams(location.search);
     },
+    INDICES: [
+      { id: "SPX", name: "S&P 500" },
+      { id: "DAX", name: "DAX 40" },
+      { id: "KS200", name: "KOSPI 200" },
+      { id: "N225", name: "Nikkei 225" },
+      { id: "UKX", name: "FTSE 100" },
+    ],
+    indexName(id) {
+      const hit = C.INDICES.find((x) => x.id === id);
+      return hit ? hit.name : id;
+    },
+    pageIndex() {
+      const q = new URLSearchParams(location.search).get("ix");
+      return C.INDICES.some((x) => x.id === q) ? q : "SPX";
+    },
+    indexSwitch(current) {
+      return `<nav class="chip-row index-switch" aria-label="Index">${C.INDICES.map((ix) =>
+        `<a class="chip${ix.id === current ? " is-on" : ""}" href="?ix=${ix.id}"${ix.id === current ? ' aria-current="true"' : ""}>${ix.name}</a>`
+      ).join("")}</nav>`;
+    },
+    syncTabs(ix) {
+      document.querySelectorAll("nav.tabs a").forEach((a) => {
+        const base = (a.getAttribute("href") || "").split("?")[0];
+        a.setAttribute("href", `${base}?ix=${encodeURIComponent(ix)}`);
+      });
+    },
+    priceDigits(ccy) {
+      return ccy === "JPY" || ccy === "KRW" ? 0 : 2;
+    },
+    money(x, ccy) {
+      if (x === null || x === undefined || Number.isNaN(Number(x))) return "–";
+      const text = C.deNum(x, C.priceDigits(ccy));
+      return ccy ? `${text} ${ccy}` : text;
+    },
   };
   window.MTS = C;
 })();

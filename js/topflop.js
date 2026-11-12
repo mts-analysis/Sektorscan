@@ -16,7 +16,7 @@
       return `<div class="bar-row${i % 2 ? "" : " is-alt"}">
         <div class="bar-id">
           <span class="mono">${escapeHtml(e.t)}</span>
-          <span class="muted">${escapeHtml(e.n)}</span>
+          <span class="muted">${escapeHtml(e.n)}${e.p == null ? "" : " · " + window.MTS.money(e.p, e.ccy)}</span>
         </div>
         <span class="bar-val" style="color:${col}">${dePct(e.c)}</span>
         <div class="bar-track"><span class="bar-fill" style="width:${w}%;background:${col}"></span></div>
@@ -46,19 +46,21 @@
   }
 
   function render(data) {
-    setStand(data);
+    const ix = window.MTS.pageIndex();
+    window.MTS.syncTabs(ix);
+    const block = (data.by_index || {})[ix] || (ix === "SPX" ? {
+      name: "S&P 500", top10: data.top10, flop10: data.flop10, session_date: data.session_date, currency: "USD",
+    } : null);
+    if (!block) {
+      $("#app").innerHTML = `${window.MTS.indexSwitch(ix)}<p class="error">Für diesen Index liegen gerade keine Daten vor.</p>`;
+      return;
+    }
+    setStand(block.stand ? { stand: block.stand } : data);
     const n = data.wiederholer_days || 0;
     const since = data.wiederholer_since || "06.11.2026";
-    const sess = data.stand && data.stand.et ? data.stand.et.replace(/,.*$/, "") : (data.session_date || "");
-    $("#app").innerHTML = `
-      <div class="tf-title-row">
-        <p class="kicker">Tages-Top und -Flop  ·  S&P 500</p>
-        <p class="muted">Schlusskurse ${escapeHtml(sess)}</p>
-      </div>
-      <div class="tf-grid">
-        ${bars("Top 10", data.top10, true)}
-        ${bars("Flop 10", data.flop10, false)}
-      </div>
+    const sess = block.session_date || "";
+    const ccy = block.currency ? ` · Kurse in ${block.currency}` : "";
+    const wiederholer = ix === "SPX" ? `
       <article class="card wh-card">
         <div class="tf-head">
           <h2>Wiederholer seit ${escapeHtml(deDate(since))}</h2>
@@ -68,7 +70,19 @@
           ${wcol("Im Top", "is-up", (data.wiederholer || {}).top, "Top", n)}
           ${wcol("Im Flop", "is-down", (data.wiederholer || {}).flop, "Flop", n)}
         </div>
-      </article>
+      </article>` : `
+      <p class="note">Der Wiederholer-Zähler läuft nur für den S&P 500.</p>`;
+    $("#app").innerHTML = `
+      ${window.MTS.indexSwitch(ix)}
+      <div class="tf-title-row">
+        <p class="kicker">Tages-Top und -Flop  ·  ${escapeHtml(block.name || window.MTS.indexName(ix))}</p>
+        <p class="muted">Letzte Sitzung ${escapeHtml(sess)}${escapeHtml(ccy)}</p>
+      </div>
+      <div class="tf-grid">
+        ${bars("Top 10", block.top10, true)}
+        ${bars("Flop 10", block.flop10, false)}
+      </div>
+      ${wiederholer}
     `;
   }
 

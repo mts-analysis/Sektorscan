@@ -62,11 +62,16 @@ def http_json(url: str, timeout: int = 25) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def chart_session_close(sym: str, session: str, retries: int = 4):
-    """Same fill order as output/sp500_topflop/fetch_and_build.py: bar close, then regularMarketPrice, then fulldayPrice (only if regularMarketTime is on the session)."""
-    delay = 1.5
-    for attempt in range(retries):
-        host = "query1" if attempt % 2 == 0 else "query2"
+def chart_session_close(sym: str, session: str, retries: int = 2, tz: ZoneInfo | None = None):
+    """Bar close, then regularMarketPrice, then fulldayPrice, matched on the market's own date."""
+    zone = tz or ET
+    delay = 1.0
+
+    def on_day(ts: float | int) -> str:
+        return datetime.fromtimestamp(int(ts), timezone.utc).astimezone(zone).strftime("%Y-%m-%d")
+
+    for _attempt in range(retries):
+        host = "query1" if _attempt % 2 == 0 else "query2"
         url = f"https://{host}.finance.yahoo.com/v8/finance/chart/{quote(sym, safe='')}?interval=1d&range=15d"
         try:
             data = http_json(url)
@@ -80,10 +85,10 @@ def chart_session_close(sym: str, session: str, retries: int = 4):
             for t, c in zip(ts_list, closes):
                 if c is None:
                     continue
-                if ny_date(t) == session:
+                if on_day(t) == session:
                     return float(c), "bar_close"
             rmt, rmp = meta.get("regularMarketTime"), meta.get("regularMarketPrice")
-            time_ok = rmt is not None and ny_date(rmt) == session
+            time_ok = rmt is not None and on_day(rmt) == session
             if time_ok and rmp is not None:
                 return float(rmp), "regularMarketPrice"
             fp = meta.get("fulldayPrice")
@@ -92,7 +97,7 @@ def chart_session_close(sym: str, session: str, retries: int = 4):
             return None, None
         except Exception:
             time.sleep(delay)
-            delay = min(delay * 1.6, 20)
+            delay = min(delay * 1.6, 8)
     return None, None
 
 
@@ -274,238 +279,505 @@ def bucket_mc(mc: float | None) -> str | None:
     return "klein"
 
 
-def fetch_market_caps(yf_tickers: list[str], budget_s: float = 90.0) -> tuple[dict[str, float], str]:
+def fetch_quote_meta(yf_tickers: list[str], budget_s: float = 150.0) -> tuple[dict[str, float], dict[str, str], str]:
+    """Market cap in quote currency and Yahoo currency code. Stops waiting after budget_s."""
     try:
         import yfinance as yf
     except ImportError:
-        return {}, "Börsenwert nicht ermittelt (yfinance fehlt)."
+        return {}, {}, "Börsenwert nicht ermittelt (yfinance fehlt)."
 
     caps: dict[str, float] = {}
+    ccys: dict[str, str] = {}
     t0 = time.time()
 
     def one(t: str):
         try:
-            cap = yf.Ticker(t).fast_info.get("marketCap") or yf.Ticker(t).fast_info.get("market_cap")
-            if cap is None:
-                return t, None
-            return t, float(cap)
+            fi = yf.Ticker(t).fast_info
+            cap = fi.get("marketCap")
+            ccy = fi.get("currency")
+            return t, (float(cap) if cap else None), (str(ccy) if ccy else None)
         except Exception:
-            return t, None
+            return t, None, None
 
-    done = 0
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=12) as pool:
         futs = [pool.submit(one, t) for t in yf_tickers]
         for fut in as_completed(futs):
             if time.time() - t0 > budget_s:
                 break
-            t, cap = fut.result()
-            done += 1
+            t, cap, ccy = fut.result()
+            if ccy:
+                ccys[t] = ccy
             if cap:
                 caps[t] = cap
     note = (
         f"Yahoo fast_info marketCap für {len(caps)} von {len(yf_tickers)} Titeln "
-        f"in {time.time()-t0:.0f}s. Schwellen: groß ≥ 10 Mrd. USD, mittel 2–10 Mrd., klein < 2 Mrd. "
-        "(keine offizielle S&P-Größenklasse)."
+        f"in {time.time()-t0:.0f}s. Börsenwert in USD (Yahoo-Devisenkurse). "
+        "Schwellen: groß ≥ 10 Mrd. USD, mittel 2–10 Mrd., klein < 2 Mrd."
     )
     if len(caps) < len(yf_tickers):
         note += " Fehlende Werte gelten im Filter als nicht verfügbar."
-    return caps, note
+    return caps, ccys, note
 
 
-def update_stocks() -> int:
+MARKETS = [
+    {"id": "SPX", "name": "S&P 500", "tz": "America/New_York", "ccy": "USD", "kind": "sp500"},
+    {"id": "DAX", "name": "DAX 40", "tz": "Europe/Berlin", "ccy": "EUR", "kind": "listed", "file": "dax40_constituents.csv"},
+    {"id": "KS200", "name": "KOSPI 200", "tz": "Asia/Seoul", "ccy": "KRW", "kind": "listed", "file": "kospi200_constituents.csv"},
+    {"id": "N225", "name": "Nikkei 225", "tz": "Asia/Tokyo", "ccy": "JPY", "kind": "listed", "file": "nikkei225_constituents.csv"},
+    {"id": "UKX", "name": "FTSE 100", "tz": "Europe/London", "ccy": "GBP", "kind": "listed", "file": "ftse100_constituents.csv"},
+]
+SECTOR_ORDER = [
+    "Technologie", "Finanzen", "Gesundheit", "Zyklischer Konsum", "Basiskonsum",
+    "Industrie", "Energie", "Grundstoffe", "Versorger", "Immobilien", "Kommunikation",
+]
+FX_TICKERS = {"EUR": "EURUSD=X", "GBP": "GBPUSD=X", "JPY": "USDJPY=X", "KRW": "USDKRW=X"}
+
+
+def _guess_ccy(yahoo: str) -> str:
+    if yahoo.endswith(".DE"):
+        return "EUR"
+    if yahoo.endswith(".KS"):
+        return "KRW"
+    if yahoo.endswith(".T"):
+        return "JPY"
+    if yahoo.endswith(".L"):
+        return "GBp"
+    return "USD"
+
+
+def load_universe() -> dict[str, dict]:
+    """One row per Yahoo ticker. Index memberships accumulate."""
+    import pandas as pd
+
+    book: dict[str, dict] = {}
+
+    def add(yahoo: str, display: str, name: str, sector: str, ix: str) -> None:
+        rec = book.get(yahoo)
+        if rec is None:
+            book[yahoo] = {"yf": yahoo, "t": display, "n": name, "s": sector, "ix": [ix]}
+            return
+        if ix not in rec["ix"]:
+            rec["ix"].append(ix)
+        if not rec["s"] and sector:
+            rec["s"] = sector
+
+    sp = pd.read_csv(CONSTITUENTS)
+    for _, row in sp.iterrows():
+        gics = str(row["GICS Sector"])
+        mapped = SECTOR_MAP.get(gics)
+        if not mapped:
+            print(f"warn: unbekanntes GICS {gics} für {row['Symbol']}", file=sys.stderr)
+            sector = "Industrie"
+        else:
+            sector = mapped[1]
+        yahoo = to_yahoo(str(row["Symbol"]))
+        add(yahoo, str(row["Symbol"]), str(row["Security"]), sector, "SPX")
+
+    for market in MARKETS:
+        if market["kind"] != "listed":
+            continue
+        path = REF / market["file"]
+        if not path.exists():
+            print(f"warn: Liste fehlt {path}", file=sys.stderr)
+            continue
+        frame = pd.read_csv(path)
+        for _, row in frame.iterrows():
+            yahoo = str(row["Yahoo"]).strip()
+            sector = str(row.get("SectorDE") or "").strip() or "Industrie"
+            add(yahoo, yahoo, str(row["Security"]), sector, market["id"])
+    return book
+
+
+def _normalize_download(raw, tickers: list[str]):
+    import pandas as pd
+
+    if raw is None or getattr(raw, "empty", True):
+        raise RuntimeError("empty")
+    if not isinstance(raw.columns, pd.MultiIndex):
+        if len(tickers) != 1:
+            raise RuntimeError("unexpected columns")
+        raw = raw.copy()
+        raw.columns = pd.MultiIndex.from_product([[tickers[0]], list(raw.columns)])
+    elif "Ticker" in (raw.columns.names or []) and raw.columns.names[0] != "Ticker":
+        raw = raw.swaplevel(0, 1, axis=1)
+    return raw
+
+
+def _download_chunk(tickers: list[str], start: str, end: str, depth: int = 0):
+    import yfinance as yf
+
     try:
-        import numpy as np
-        import pandas as pd
-        import yfinance as yf
-    except ImportError as e:
-        print(f"stocks.json übersprungen: yfinance/pandas nicht verfügbar ({e}).", file=sys.stderr)
-        print("Hinweis: pip install -r requirements.txt && python update.py", file=sys.stderr)
-        return 1
+        raw = yf.download(
+            tickers,
+            start=start,
+            end=end,
+            auto_adjust=False,
+            group_by="ticker",
+            threads=True,
+            progress=False,
+        )
+        return [_normalize_download(raw, tickers)], []
+    except Exception as e:  # noqa: BLE001
+        print(f"  chunk fail n={len(tickers)} depth={depth}: {e!r}", flush=True)
+        if len(tickers) == 1 or depth >= 2:
+            return [], list(tickers)
+        mid = len(tickers) // 2
+        left, lf = _download_chunk(tickers[:mid], start, end, depth + 1)
+        right, rf = _download_chunk(tickers[mid:], start, end, depth + 1)
+        return left + right, lf + rf
 
-    if not CONSTITUENTS.exists():
-        print(f"Constituents fehlen: {CONSTITUENTS}", file=sys.stderr)
-        return 1
 
-    cons = pd.read_csv(CONSTITUENTS)
-    cons["yf"] = cons["Symbol"].map(to_yahoo)
-    stock_yf = cons["yf"].tolist()
-    extras = ["SPY", "^GSPC"]
-    all_tickers = extras + stock_yf
+def download_prices(tickers: list[str], start: str, end: str):
+    import pandas as pd
 
-    today_utc = datetime.now(timezone.utc).date()
-    start = (today_utc - timedelta(days=400)).isoformat()
-    end = (today_utc + timedelta(days=1)).isoformat()
-    print(f"yfinance: {len(all_tickers)} Titel {start}..{end}", flush=True)
-    raw = yf.download(
-        all_tickers,
-        start=start,
-        end=end,
-        auto_adjust=False,
-        group_by="ticker",
-        threads=True,
-        progress=False,
-    )
+    frames = []
+    failed: list[str] = []
+    for i in range(0, len(tickers), 200):
+        part, bad = _download_chunk(tickers[i : i + 200], start, end)
+        frames.extend(part)
+        failed.extend(bad)
+        print(f"  Kurse {min(i+200, len(tickers))}/{len(tickers)}", flush=True)
+    if not frames:
+        raise RuntimeError("keine Kursdaten")
+    raw = pd.concat(frames, axis=1)
+    raw = raw.loc[:, ~raw.columns.duplicated()]
 
-    def field(ticker: str, col: str) -> pd.Series | None:
+    def field(ticker: str, col: str):
         try:
-            if isinstance(raw.columns, pd.MultiIndex):
-                if ticker not in raw.columns.get_level_values(0):
-                    return None
-                s = raw[ticker][col]
-            else:
-                s = raw[col]
-            s = s.copy()
+            if ticker not in raw.columns.get_level_values(0):
+                return None
+            s = raw[ticker][col].copy()
             s.index = pd.to_datetime(s.index).tz_localize(None).strftime("%Y-%m-%d")
+            s = s[~s.index.duplicated(keep="last")]
             return s
         except Exception:
             return None
 
-    close_df = pd.DataFrame({t: field(t, "Close") for t in all_tickers if field(t, "Close") is not None})
-    high_df = pd.DataFrame({t: field(t, "High") for t in all_tickers if field(t, "High") is not None})
-    low_df = pd.DataFrame({t: field(t, "Low") for t in all_tickers if field(t, "Low") is not None})
-    vol_df = pd.DataFrame({t: field(t, "Volume") for t in all_tickers if field(t, "Volume") is not None})
-    close_df = close_df.sort_index()
-    print("Tage:", list(close_df.index[-6:]), "Spalten:", close_df.shape, flush=True)
+    def frame(col: str) -> pd.DataFrame:
+        data = {}
+        for t in tickers:
+            s = field(t, col)
+            if s is not None:
+                data[t] = s
+        out = pd.DataFrame(data).sort_index()
+        return out[~out.index.duplicated(keep="last")]
 
-    # last session with enough names (same idea as the pipeline)
-    candidates = []
-    for d in close_df.index:
-        row = close_df.loc[d]
-        n_ok = int(row.notna().sum())
-        has_idx = pd.notna(row.get("SPY")) or pd.notna(row.get("^GSPC"))
-        if has_idx or n_ok >= 50:
-            candidates.append(d)
-    if len(candidates) < 2:
-        print(f"STOP: zu wenige Sitzungen {candidates}", file=sys.stderr)
+    return frame("Close"), frame("High"), frame("Low"), frame("Volume"), failed
+
+
+def load_fx() -> dict[str, float]:
+    """USD per 1 unit of currency. JPY/KRW use the USD cross."""
+    import yfinance as yf
+
+    rates = {"USD": 1.0}
+    symbols = list(FX_TICKERS.values())
+    try:
+        raw = yf.download(symbols, period="10d", auto_adjust=False, group_by="ticker", threads=True, progress=False)
+        raw = _normalize_download(raw, symbols)
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: Devisenkurse fehlen ({e!r})", file=sys.stderr)
+        return rates
+
+    def last(sym: str) -> float | None:
+        try:
+            s = raw[sym]["Close"].dropna()
+            if len(s) == 0:
+                return None
+            v = float(s.iloc[-1])
+            return v if v > 0 else None
+        except Exception:
+            return None
+
+    eurusd, gbpusd = last("EURUSD=X"), last("GBPUSD=X")
+    usdjpy, usdkrw = last("USDJPY=X"), last("USDKRW=X")
+    if eurusd:
+        rates["EUR"] = eurusd
+    if gbpusd:
+        rates["GBP"] = gbpusd
+    if usdjpy:
+        rates["JPY"] = 1.0 / usdjpy
+    if usdkrw:
+        rates["KRW"] = 1.0 / usdkrw
+    print("FX USD je Einheit:", {k: round(v, 6) for k, v in rates.items()}, flush=True)
+    return rates
+
+
+def _pick_session(close_df, members: list[str]) -> tuple[str | None, str | None]:
+    cols = [m for m in members if m in close_df.columns]
+    if not cols:
+        return None, None
+    sub = close_df[cols]
+    dates: list[str] = []
+    need = max(5, int(0.55 * len(members)))
+    for d in sub.index:
+        if int(sub.loc[d].notna().sum()) >= need:
+            dates.append(str(d))
+    if len(dates) < 2:
+        dates = []
+        relax = max(3, int(0.3 * len(members)))
+        for d in sub.index:
+            if int(sub.loc[d].notna().sum()) >= relax:
+                dates.append(str(d))
+    if len(dates) < 2:
+        return None, None
+    return dates[-1], dates[-2]
+
+
+def _basket_spark(close_df, tickers: list[str], days: list[str]) -> list[float]:
+    import pandas as pd
+
+    window = days[-SPARK_N:]
+    if len(window) < 2:
+        return []
+    series = []
+    for t in tickers:
+        if t not in close_df.columns:
+            continue
+        s = close_df[t].reindex(window).astype(float)
+        valid = s.dropna()
+        if len(valid) < 2:
+            continue
+        base = float(valid.iloc[0])
+        if base == 0:
+            continue
+        series.append(s / base * 100.0)
+    if not series:
+        return []
+    avg = pd.concat(series, axis=1).mean(axis=1).dropna()
+    return [round(float(v), 2) for v in avg.tolist()]
+
+
+def _scale_gbpence(frame, tickers: list[str]) -> None:
+    for t in tickers:
+        if t in frame.columns:
+            frame[t] = frame[t] / 100.0
+
+
+def update_stocks() -> int:
+    try:
+        import pandas as pd
+    except ImportError as e:
+        print(f"stocks.json übersprungen: pandas nicht verfügbar ({e}).", file=sys.stderr)
         return 1
-    session, prev = candidates[-1], candidates[-2]
-    sess = close_df.loc[session].copy()
-    prev_row = close_df.loc[prev].copy()
-    need = [t for t in stock_yf if t not in sess.index or pd.isna(sess.get(t))]
-    filled_sources: dict[str, str] = {}
-    if need:
-        print(f"Fülle {len(need)} fehlende Schlusskurse über Yahoo-Chart …", flush=True)
 
-        def _one(t):
-            val, src = chart_session_close(t, session)
-            return t, val, src
+    book = load_universe()
+    if not book:
+        print("keine Titel", file=sys.stderr)
+        return 1
+    by_ix: dict[str, list[str]] = {m["id"]: [] for m in MARKETS}
+    for rec in book.values():
+        for ix in rec["ix"]:
+            by_ix.setdefault(ix, []).append(rec["yf"])
 
-        ok = 0
+    today_utc = datetime.now(timezone.utc).date()
+    start = (today_utc - timedelta(days=400)).isoformat()
+    end = (today_utc + timedelta(days=1)).isoformat()
+    tickers = list(book)
+    print(f"yfinance: {len(tickers)} Titel {start}..{end}", flush=True)
+    try:
+        close_df, high_df, low_df, vol_df, failed = download_prices(tickers, start, end)
+    except Exception as e:  # noqa: BLE001
+        print(f"STOP: Kursdownload {e!r}", file=sys.stderr)
+        return 1
+    if failed:
+        print(f"warn: ohne Kursreihe: {failed[:12]}{'…' if len(failed) > 12 else ''}", flush=True)
+    print("Tage:", list(close_df.index[-4:]), "Spalten:", close_df.shape, flush=True)
+
+    sessions: dict[str, tuple[str | None, str | None]] = {}
+    for market in MARKETS:
+        sess, prev = _pick_session(close_df, by_ix.get(market["id"], []))
+        sessions[market["id"]] = (sess, prev)
+        print(f"  Sitzung {market['id']}: {sess} prev {prev} n={len(by_ix.get(market['id'], []))}", flush=True)
+
+    caps_raw, ccys, cap_note = fetch_quote_meta(tickers)
+    gbpence = []
+    display_ccy: dict[str, str] = {}
+    caps: dict[str, float] = {}
+    for t in tickers:
+        ccy = ccys.get(t) or _guess_ccy(t)
+        cap = caps_raw.get(t)
+        if ccy == "GBp":
+            gbpence.append(t)
+            ccy = "GBP"
+            if cap is not None:
+                cap = cap / 100.0
+        display_ccy[t] = ccy
+        if cap is not None:
+            caps[t] = cap
+    for frame in (close_df, high_df, low_df):
+        _scale_gbpence(frame, gbpence)
+    print(f"London in Pence, Anzeige in GBP: {len(gbpence)} Titel", flush=True)
+
+    # Fill only a small gap so one illiquid name cannot stretch the run.
+    for market in MARKETS:
+        sess, _prev = sessions[market["id"]]
+        if not sess:
+            continue
+        members = by_ix.get(market["id"], [])
+        need = [t for t in members if t not in close_df.columns or pd.isna(close_df.at[sess, t] if t in close_df.columns else float("nan"))]
+        if not need:
+            continue
+        if len(need) > 40:
+            print(f"warn: {market['id']} {len(need)} ohne Sitzungskurs, kein Einzelabruf", flush=True)
+            continue
+        zone = ZoneInfo(market["tz"])
+        print(f"Fülle {len(need)} Schlusskurse {market['id']} …", flush=True)
+        filled = 0
         with ThreadPoolExecutor(max_workers=6) as pool:
-            futs = [pool.submit(_one, t) for t in need]
-            done = 0
-            for fut in as_completed(futs):
-                t, val, src = fut.result()
-                done += 1
-                if val is not None:
-                    sess[t] = val
-                    filled_sources[t] = src or "chart"
-                    ok += 1
-                if done % 25 == 0 or done == len(need):
-                    print(f"  {done}/{len(need)} gefüllt={ok}", flush=True)
-        close_df.loc[session] = sess
-        print(f"Gefüllt: {ok}; weiter fehlend: {[t for t in need if t not in filled_sources]}", flush=True)
+            futs = [pool.submit(chart_session_close, t, sess, 2, zone) for t in need]
+            for fut, t in zip(futs, need):
+                try:
+                    val, _src = fut.result(timeout=30)
+                except Exception:
+                    val = None
+                if val is None:
+                    continue
+                if t in gbpence:
+                    val = val / 100.0
+                if t not in close_df.columns:
+                    close_df[t] = float("nan")
+                close_df.at[sess, t] = val
+                filled += 1
+        print(f"  gefüllt {filled}/{len(need)}", flush=True)
 
-    ndx, dow, index_note = load_index_members()
-    print("Indexlisten:", index_note, "NDX", len(ndx), "DJIA", len(dow), flush=True)
+    fx = load_fx()
+    stands: dict[str, dict] = {}
+    sectors_path = ROOT / "data" / "sectors.json"
+    if sectors_path.exists():
+        try:
+            for m in json.loads(sectors_path.read_text(encoding="utf-8")).get("markets") or []:
+                if isinstance(m, dict) and m.get("id") and m.get("stand"):
+                    stands[m["id"]] = m["stand"]
+        except Exception as e:  # noqa: BLE001
+            print(f"warn: Stand aus sectors.json nicht gelesen ({e!r})", file=sys.stderr)
+
     week_id, earn_set, earn_note = load_earnings_week()
     print("Earnings:", week_id, earn_note, flush=True)
-
     hist = {"meta": {"started": "2026-11-06"}, "days": []}
     if HISTORY.exists():
         hist = json.loads(HISTORY.read_text(encoding="utf-8"))
     n_days, started, top_c, flop_c, wmeta = wiederholer_counts(hist)
 
-    caps, cap_note = fetch_market_caps(stock_yf)
-    print(cap_note, flush=True)
-
-    # stand from ^GSPC
-    stand_ts = int(datetime.now(timezone.utc).timestamp())
-    try:
-        g = http_json(f"https://query1.finance.yahoo.com/v8/finance/chart/{quote('^GSPC')}?interval=1d&range=5d")
-        r0 = g["chart"]["result"][0]
-        if r0.get("meta", {}).get("regularMarketTime"):
-            stand_ts = int(r0["meta"]["regularMarketTime"])
-    except Exception:
-        pass
-    stand = format_stand(stand_ts)
-
     rows = []
-    missing = []
-    dates = list(close_df.index)
+    missing_by: dict[str, list[str]] = {m["id"]: [] for m in MARKETS}
 
     def series_upto(df: pd.DataFrame, t: str) -> pd.Series:
         if t not in df.columns:
             return pd.Series(dtype=float)
         return df[t]
 
-    for _, crow in cons.iterrows():
-        ticker, yf_t, name, gics = crow["Symbol"], crow["yf"], crow["Security"], crow["GICS Sector"]
-        etf, sector = SECTOR_MAP[gics]
-        c = sess.get(yf_t) if yf_t in sess.index else None
-        p = prev_row.get(yf_t) if yf_t in prev_row.index else None
-        if c is None or p is None or (isinstance(c, float) and pd.isna(c)) or (isinstance(p, float) and pd.isna(p)):
-            missing.append(ticker)
+    for rec in book.values():
+        yf_t = rec["yf"]
+        chosen = None
+        for ix in rec["ix"]:
+            sess, prev = sessions.get(ix, (None, None))
+            if not sess or not prev or yf_t not in close_df.columns:
+                continue
+            c = close_df.at[sess, yf_t] if sess in close_df.index else None
+            p = close_df.at[prev, yf_t] if prev in close_df.index else None
+            if c is None or p is None or pd.isna(c) or pd.isna(p) or float(p) == 0:
+                continue
+            if chosen is None or sess > chosen[0]:
+                chosen = (sess, prev, float(c), float(p), ix)
+        if chosen is None:
+            for ix in rec["ix"]:
+                missing_by.setdefault(ix, []).append(rec["t"])
             continue
-        c, p = float(c), float(p)
+        session, prev, c, p, _primary = chosen
         pct = (c / p - 1.0) * 100.0
-
         cl = series_upto(close_df, yf_t).dropna()
-        # inject filled close for sparkline / 52w if needed
-        if session not in cl.index or pd.isna(cl.get(session)):
+        if session not in cl.index:
             cl.loc[session] = c
             cl = cl.sort_index()
-        spark = downsample(cl.tail(SPARK_N).tolist(), SPARK_N)
-
+        spark = downsample(cl.loc[:session].tail(SPARK_N).tolist(), SPARK_N)
         hi = series_upto(high_df, yf_t).dropna().tail(252)
         lo = series_upto(low_df, yf_t).dropna().tail(252)
-        # include today's close in the range
         h52 = float(max(hi.max(), c)) if len(hi) else c
         l52 = float(min(lo.min(), c)) if len(lo) else c
         d_high = (c / h52 - 1.0) * 100.0 if h52 else None
         d_low = (c / l52 - 1.0) * 100.0 if l52 else None
-
         rv = None
         vol = series_upto(vol_df, yf_t)
-        if len(vol.dropna()) >= 11:
-            # last session volume vs previous 20 days (exclude last)
-            aligned = vol.reindex(dates).dropna()
-            if session in aligned.index:
-                today_v = float(aligned.loc[session])
-                prev20 = aligned.loc[:session].iloc[:-1].tail(20)
-                if today_v > 0 and len(prev20) >= 10 and float(prev20.mean()) > 0:
-                    rv = today_v / float(prev20.mean())
-
-        mc = caps.get(yf_t)
-        ix = ["SPX"]
-        # match wiki symbols to display ticker (BRK.B vs BRK-B)
-        if ticker in ndx or yf_t in ndx or ticker.replace(".", "-") in ndx:
-            ix.append("NDX")
-        if ticker in dow or yf_t in dow or ticker.replace(".", "-") in dow:
-            ix.append("DJI")
-
-        ew = 1 if (ticker in earn_set or yf_t in earn_set) else 0
-
+        if len(vol.dropna()) >= 11 and session in vol.index:
+            today_v = float(vol.loc[session])
+            prev20 = vol.loc[:session].iloc[:-1].tail(20)
+            if today_v > 0 and len(prev20) >= 10 and float(prev20.mean()) > 0:
+                rv = today_v / float(prev20.mean())
+        ccy = display_ccy.get(yf_t) or "USD"
+        cap = caps.get(yf_t)
+        factor = fx.get(ccy)
+        mc = (cap * factor / 1e9) if cap is not None and factor else None
+        ticker = rec["t"]
+        ew = 1 if (ticker in earn_set or yf_t in earn_set or ticker.replace("-", ".") in earn_set) else 0
         rows.append({
             "t": ticker,
-            "n": name,
-            "s": sector,
-            "p": round(c, 2),
+            "n": rec["n"],
+            "s": rec["s"],
+            "p": round(c, 2 if ccy not in ("JPY", "KRW") else 0),
             "c": round(pct, 2),
+            "ccy": ccy,
             "rv": None if rv is None else round(rv, 2),
             "dH": None if d_high is None else round(d_high, 2),
             "dL": None if d_low is None else round(d_low, 2),
-            "mc": None if mc is None else round(mc / 1e9, 2),  # Mrd. USD
-            "ix": ix,
+            "mc": None if mc is None else round(mc, 2),
+            "ix": list(rec["ix"]),
             "wt": int(top_c.get(ticker, 0)),
             "wf": int(flop_c.get(ticker, 0)),
             "ew": ew,
             "sp": spark,
+            "_yf": yf_t,
+            "_session": session,
         })
 
     rows.sort(key=lambda r: r["c"], reverse=True)
-    top10 = [{"t": r["t"], "n": r["n"], "s": r["s"], "c": r["c"]} for r in rows[:10]]
-    flop10 = [{"t": r["t"], "n": r["n"], "s": r["s"], "c": r["c"]} for r in sorted(rows, key=lambda r: r["c"])[:10]]
+
+    def pack_side(items: list[dict]) -> list[dict]:
+        return [{"t": r["t"], "n": r["n"], "s": r["s"], "c": r["c"], "p": r["p"], "ccy": r["ccy"]} for r in items]
+
+    by_index: dict[str, dict] = {}
+    for market in MARKETS:
+        ix = market["id"]
+        sess, prev = sessions.get(ix, (None, None))
+        members = [r for r in rows if ix in r["ix"]]
+        ranked = sorted(members, key=lambda r: r["c"], reverse=True)
+        flop = sorted(members, key=lambda r: r["c"])
+        market_days = [str(d) for d in close_df.index if sess is None or str(d) <= sess]
+        sectors = []
+        for name in SECTOR_ORDER:
+            group = [r for r in members if r["s"] == name]
+            if not group:
+                continue
+            pct = sum(r["c"] for r in group) / len(group)
+            sectors.append({
+                "name": name,
+                "n": len(group),
+                "pct": round(pct, 2),
+                "sparkline": _basket_spark(close_df, [r["_yf"] for r in group], market_days),
+            })
+        by_index[ix] = {
+            "id": ix,
+            "name": market["name"],
+            "currency": market["ccy"],
+            "stand": stands.get(ix),
+            "session_date": sess,
+            "prev_date": prev,
+            "n": len(members),
+            "missing": missing_by.get(ix, []),
+            "up": sum(1 for r in members if r["c"] > 0),
+            "down": sum(1 for r in members if r["c"] < 0),
+            "top10": pack_side(ranked[:10]),
+            "flop10": pack_side(flop[:10]),
+            "sectors": sectors,
+        }
+        print(
+            f"{ix}: n={len(members)} missing={len(missing_by.get(ix, []))} "
+            f"session={sess} top={(ranked[0]['t'] + ' ' + format(ranked[0]['c'], '+.2f')) if ranked else '-'}",
+            flush=True,
+        )
+
+    spx_rows = [r for r in rows if "SPX" in r["ix"]]
+    top10 = pack_side(sorted(spx_rows, key=lambda r: r["c"], reverse=True)[:10])
+    flop10 = pack_side(sorted(spx_rows, key=lambda r: r["c"])[:10])
 
     def wlist(counter: dict[str, int], side: str):
         items = []
@@ -513,7 +785,6 @@ def update_stocks() -> int:
             if k < 2:
                 continue
             meta = wmeta.get(t) or {}
-            # enrich from rows if possible
             hit = next((r for r in rows if r["t"] == t), None)
             items.append({
                 "t": t,
@@ -525,16 +796,23 @@ def update_stocks() -> int:
         items.sort(key=lambda x: (-x["k"], x["t"]))
         return items
 
+    public_rows = []
+    for r in rows:
+        item = dict(r)
+        item.pop("_yf", None)
+        item.pop("_session", None)
+        public_rows.append(item)
+
+    spx_info = by_index.get("SPX") or {}
     payload = {
         "updated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "stand": format_stand(stand_ts),
+        "stand": stands.get("SPX") or format_stand(int(datetime.now(timezone.utc).timestamp())),
         "stand_note": "ca. 15 Min. verzögert",
-        "session_date": session,
-        "prev_date": prev,
-        "source": "Yahoo Finance via yfinance (unadjusted OHLCV) + Chart-Fill für fehlende Schlusskurse",
-        "n": len(rows),
-        "missing": missing,
-        "filled": sorted(filled_sources.keys()),
+        "session_date": spx_info.get("session_date"),
+        "prev_date": spx_info.get("prev_date"),
+        "source": "Yahoo Finance via yfinance (unadjusted OHLCV). Tagesänderung je letzte Sitzung des Index.",
+        "n": len(public_rows),
+        "missing": spx_info.get("missing") or [],
         "wiederholer_since": started,
         "wiederholer_days": n_days,
         "earnings_week": week_id,
@@ -544,29 +822,61 @@ def update_stocks() -> int:
             "klein": "unter 2 Mrd. USD",
         },
         "notes": {
-            "volume": "Relatives Volumen = Schluss-Volumen der Sitzung geteilt durch den Mittelwert der 20 vorherigen Sitzungen.",
-            "range52": "52-Wochen-Hoch/-Tief aus den täglichen High/Low der letzten 252 Handelstage inklusive aktueller Schlusskurs.",
-            "chart": "Sparkline = letzte 30 tägliche Schlusskurse, nicht intraday (zu viele Einzelabfragen für 500 Titel).",
-            "index": "Universum ist der S&P 500. Nasdaq-100- und Dow-Filter zeigen die Schnittmenge. " + index_note,
+            "volume": "Relatives Volumen = Volumen der Sitzung geteilt durch den Mittelwert der 20 vorherigen Sitzungen.",
+            "range52": "52-Wochen-Hoch/-Tief aus den täglichen High/Low der letzten 252 Handelstage inklusive aktuellem Schlusskurs.",
+            "chart": "Sparkline = letzte 30 tägliche Schlusskurse.",
+            "index": "Ein Titel kann in mehreren Indizes stehen und erscheint dann einmal, mit allen Zugehörigkeiten.",
             "market_cap": cap_note,
+            "currency": "Kurse in Landeswährung (London von Pence nach GBP). Börsenwert-Filter in USD, umgerechnet mit Yahoo-Devisenkursen.",
+            "session": "Die Tagesänderung bezieht sich auf die letzte Sitzung des jeweiligen Marktes.",
             "earnings": earn_note,
-            "wiederholer": f"Fortlaufender Zähler seit {started}, {n_days} Handelstage, aus history.json (nur gelesen).",
+            "wiederholer": f"Fortlaufender Zähler seit {started}, {n_days} Handelstage, nur S&P 500, aus history.json (nur gelesen).",
         },
-        "rows": rows,
+        "rows": public_rows,
         "top10": top10,
         "flop10": flop10,
         "wiederholer": {"top": wlist(top_c, "top"), "flop": wlist(flop_c, "flop")},
+        "by_index": by_index,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
-    print(
-        f"wrote {OUT}  n={len(rows)} missing={missing}  "
-        f"Top {top10[0]['t']} {top10[0]['c']:+.2f}  Flop {flop10[0]['t']} {flop10[0]['c']:+.2f}  "
-        f"{OUT.stat().st_size/1024:.0f} KB",
-        flush=True,
-    )
+    print(f"wrote {OUT}  n={len(public_rows)}  {OUT.stat().st_size/1024:.0f} KB", flush=True)
+    _patch_sectors(by_index)
+    if not public_rows:
+        return 1
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(update_stocks())
+def _patch_sectors(by_index: dict[str, dict]) -> None:
+    path = ROOT / "data" / "sectors.json"
+    if not path.exists():
+        return
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: sectors.json nicht gelesen ({e!r})", file=sys.stderr)
+        return
+    existing = {m.get("id"): m for m in doc.get("markets") or [] if isinstance(m, dict)}
+    ordered = []
+    for market in MARKETS:
+        base = dict(existing.get(market["id"]) or {"id": market["id"], "name": market["name"]})
+        info = by_index.get(market["id"]) or {}
+        base["id"] = market["id"]
+        base["name"] = market["name"]
+        base["price_currency"] = info.get("currency") or market["ccy"]
+        base["stock_session"] = info.get("session_date")
+        base["up_stocks"] = info.get("up")
+        base["down_stocks"] = info.get("down")
+        base["n_stocks"] = info.get("n")
+        if market["id"] != "SPX":
+            sectors = info.get("sectors") or []
+            base["sectors"] = sectors
+            base["up"] = sum(1 for s in sectors if s.get("pct", 0) > 0)
+            base["down"] = sum(1 for s in sectors if s.get("pct", 0) < 0)
+            base["flat"] = len(sectors) - base["up"] - base["down"]
+        ordered.append(base)
+    doc["markets"] = ordered
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"patched {path}", flush=True)
+
+

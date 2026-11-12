@@ -433,6 +433,8 @@ body { padding: 0; }
   gap: 8px;
   margin: 0 0 10px;
 }
+.index-switch { margin-bottom: 14px; }
+a.chip { text-decoration: none; display: inline-block; }
 .chip {
   appearance: none;
   border: 1px solid var(--line);

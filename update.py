@@ -94,14 +94,15 @@ def series_from_chart(result: dict) -> tuple[list[int], list[float | None]]:
     return ts, closes[: len(ts)]
 
 
-def daily_pairs(result: dict) -> list[tuple[str, float]]:
-    """Return [(YYYY-MM-DD in US Eastern, close), ...] skipping gaps."""
+def daily_pairs(result: dict, tz: ZoneInfo | None = None) -> list[tuple[str, float]]:
+    """Return [(YYYY-MM-DD in the market timezone, close), ...] skipping gaps."""
+    zone = tz or ET
     ts, closes = series_from_chart(result)
     out = []
     for t, c in zip(ts, closes):
         if c is None:
             continue
-        day = datetime.fromtimestamp(t, ET).date().isoformat()
+        day = datetime.fromtimestamp(t, zone).date().isoformat()
         out.append((day, float(c)))
     # last close of a calendar day wins
     merged: dict[str, float] = {}
@@ -224,22 +225,28 @@ def compute_barometer(daily: dict[str, list[tuple[str, float]]]) -> dict:
     return {"today": today, "prev": prev, "source": "Yahoo Finance daily Close, Formel wie MTS Trend-Barometer"}
 
 
-def last_price_and_pct(pairs: list[tuple[str, float]], live: float | None) -> tuple[float, float, float, str]:
+def last_price_and_pct(
+    pairs: list[tuple[str, float]], live: float | None, tz: ZoneInfo | None = None
+) -> tuple[float, float, float, str]:
     """Return price, prev_close, pct, session_date. Prefer live quote vs previous official close."""
+    zone = tz or ET
     if len(pairs) < 2:
         raise RuntimeError("need at least two daily closes")
     last_day, last_close = pairs[-1]
-    prev_day, prev_close = pairs[-2]
-    if live is not None and last_day == datetime.now(ET).date().isoformat():
+    _prev_day, prev_close = pairs[-2]
+    today = datetime.now(zone).date().isoformat()
+    if live is not None and last_day == today:
         # today's bar already in the daily series: prev is previous session
         price = live
         return price, prev_close, (price / prev_close - 1.0) * 100.0, last_day
-    if live is not None and last_day < datetime.now(ET).date().isoformat():
+    if live is not None and last_day < today:
         # market may be open and today's daily bar not finalized; compare live to last close
         # If live is essentially last close (market shut), use official close-to-close.
-        if abs(live - last_close) / last_close < 1e-6:
+        # Quotes often differ from the daily close by rounding. Treat that as the
+        # same, finished session. A real move above 0.01% starts the new session.
+        if last_close and abs(live - last_close) / last_close < 1e-4:
             return last_close, prev_close, (last_close / prev_close - 1.0) * 100.0, last_day
-        return live, last_close, (live / last_close - 1.0) * 100.0, datetime.now(ET).date().isoformat()
+        return live, last_close, (live / last_close - 1.0) * 100.0, today
     return last_close, prev_close, (last_close / prev_close - 1.0) * 100.0, last_day
 
 
@@ -256,6 +263,56 @@ def format_stand(ts: int) -> dict:
         "et": et.strftime("%d.%m.%Y, %H:%M") + f" {et_label}",
         "mez": mez.strftime("%d.%m.%Y, %H:%M") + f" {mez_label}",
         "label": f"{et.strftime('%d.%m.%Y, %H:%M')} {et_label} / {mez.strftime('%H:%M')} {mez_label}",
+    }
+
+
+EXTRA_INDICES = [
+    ("DAX", "DAX 40", "^GDAXI", ZoneInfo("Europe/Berlin")),
+    ("KS200", "KOSPI 200", "^KS200", ZoneInfo("Asia/Seoul")),
+    ("N225", "Nikkei 225", "^N225", ZoneInfo("Asia/Tokyo")),
+    ("UKX", "FTSE 100", "^FTSE", ZoneInfo("Europe/London")),
+]
+
+
+def fetch_index_quote(ticker: str, tz: ZoneInfo) -> dict | None:
+    """Index level in points. One market failing must not abort the others."""
+    try:
+        dres = fetch_chart(ticker, "1d", "6mo")
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: index {ticker}: {e!r}", file=sys.stderr)
+        return None
+    meta = dres.get("meta") or {}
+    pairs = daily_pairs(dres, tz)
+    live = float(meta["regularMarketPrice"]) if meta.get("regularMarketPrice") is not None else None
+    try:
+        prev_meta = meta.get("previousClose") or meta.get("chartPreviousClose")
+        if len(pairs) >= 2:
+            price, _prev, pct, session = last_price_and_pct(pairs, live, tz)
+        elif live is not None and prev_meta:
+            prev = float(prev_meta)
+            if prev == 0:
+                return None
+            price = live
+            pct = (price / prev - 1.0) * 100.0
+            session = datetime.now(tz).date().isoformat()
+        else:
+            return None
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: index {ticker} pct: {e!r}", file=sys.stderr)
+        return None
+    try:
+        spark = sparkline(dres, 60) if len(pairs) >= 2 else []
+    except Exception:  # noqa: BLE001
+        spark = [round(c, 2) for _, c in pairs[-30:]]
+    ts = int(meta.get("regularMarketTime") or datetime.now(timezone.utc).timestamp())
+    return {
+        "ticker": ticker,
+        "price": round(float(price), 2),
+        "pct": round(float(pct), 2),
+        "session_date": session,
+        "sparkline": spark,
+        "stand": format_stand(ts),
+        "currency": meta.get("currency"),
     }
 
 
@@ -335,7 +392,35 @@ def fetch_all() -> dict:
             "session_date": baro["today"]["date"],
             "source": baro["source"],
         },
+        "markets": [
+            {
+                "id": "SPX",
+                "name": INDEX_NAME,
+                "ticker": INDEX_TICKER,
+                "price": index["price"],
+                "pct": index["pct"],
+                "session_date": index["session_date"],
+                "sparkline": index["sparkline"],
+                "stand": stand,
+                "up": up,
+                "down": down,
+                "flat": flat,
+                "currency": "USD",
+            }
+        ],
     }
+
+
+def attach_extra_indices(payload: dict) -> None:
+    for id_, name, ticker, tz in EXTRA_INDICES:
+        time.sleep(0.15)
+        quote = fetch_index_quote(ticker, tz)
+        if not quote:
+            print(f"warn: {name} ({ticker}) ohne Kurs", file=sys.stderr)
+            payload["markets"].append({"id": id_, "name": name, "ticker": ticker})
+            continue
+        payload["markets"].append({"id": id_, "name": name, **quote})
+        print(f"{name} {quote['price']} ({quote['pct']:+.2f} %)")
 
 
 def main() -> int:
@@ -344,6 +429,10 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         print(f"update failed: {e!r}", file=sys.stderr)
         return 1
+    try:
+        attach_extra_indices(payload)
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: weitere Indizes: {e!r}", file=sys.stderr)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     idx = payload["index"]
@@ -357,10 +446,9 @@ def main() -> int:
         from stock_data import update_stocks
         src = update_stocks()
         if src:
-            return src
+            print("warn: Aktien-Update unvollständig, Sektor-Datei bleibt gültig.", file=sys.stderr)
     except Exception as e:  # noqa: BLE001
         print(f"Aktien-Update fehlgeschlagen: {e!r}", file=sys.stderr)
-        return 1
     return 0
 
 

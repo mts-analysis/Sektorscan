@@ -122,12 +122,83 @@
     </svg>`;
   }
 
-  function render(data) {
-    const stand = $("#stand");
-    const label = data.stand && data.stand.label ? data.stand.label : "";
-    stand.textContent = label
+  function setStand(stand) {
+    const el = $("#stand");
+    const label = stand && stand.label ? stand.label : "";
+    el.textContent = label
       ? `Stand: ${label} (ca. 15 Min. verzögert)`
       : "Stand unbekannt";
+  }
+
+  function renderMarket(market, switcher) {
+    setStand(market.stand);
+    const upCls = market.pct >= 0 ? "is-up" : "is-down";
+    const sectors = Array.isArray(market.sectors) ? market.sectors : [];
+    const nSectors = sectors.length;
+    const upSectors = sectors.filter((s) => s.pct > 0).length;
+    const nStocks = market.n_stocks || 0;
+    const upStocks = market.up_stocks || 0;
+    const ccy = market.price_currency || "";
+    const tiles = sectors.map((s, i) => {
+      const col = pctColor(s.pct);
+      const tail = nSectors === 11 && i >= 9 ? (i === 9 ? " tail-a" : " tail-b") : "";
+      return `<article class="tile${tail}" style="background:${tint(col, 0.1)}">
+        <span class="tile-accent" style="background:${col}"></span>
+        <div class="tile-top">
+          <div>
+            <h3 class="tile-name">${escapeHtml(s.name)}</h3>
+            <p class="tile-ticker">${s.n} Titel</p>
+          </div>
+        </div>
+        <p class="tile-pct" style="color:${col}">${dePct(s.pct)}</p>
+        ${sparkSVG(s.sparkline, col)}
+      </article>`;
+    }).join("");
+    const priceBlock = market.price == null
+      ? `<p class="hero-line">Indexstand gerade nicht verfügbar</p>`
+      : `<p class="spx-price">${deNum(market.price)}</p>
+         <p class="spx-pct ${upCls}">${dePct(market.pct)}</p>`;
+    $("#app").innerHTML = `
+      ${switcher}
+      <div class="main-layout">
+        <section class="hero">
+          <article class="card">
+            <p class="kicker">${escapeHtml(market.name)} · Punkte</p>
+            ${priceBlock}
+            <p class="hero-line">${upSectors} von ${nSectors} Sektoren im Plus</p>
+            <p class="hero-sub">${upStocks} von ${nStocks} Titeln im Plus · letzte Sitzung</p>
+          </article>
+          <article class="card">
+            <p class="kicker">Marktbreite</p>
+            <p class="spx-price">${upStocks}<span class="hero-sub"> / ${nStocks}</span></p>
+            <p class="hero-line">Titel im Plus</p>
+            <p class="hero-sub">Ø der Titel je Sektor, Kurse in ${escapeHtml(ccy || "Landeswährung")}</p>
+          </article>
+        </section>
+        <section>
+          <div class="section-head">
+            <h2>Sektor-Übersicht</h2>
+            <p>Ø Tagesänderung der Titel in der letzten Sitzung</p>
+          </div>
+          <div class="grid">${tiles}</div>
+        </section>
+      </div>`;
+  }
+
+  function render(data) {
+    const ix = window.MTS ? window.MTS.pageIndex() : "SPX";
+    const switcher = window.MTS ? window.MTS.indexSwitch(ix) : "";
+    if (window.MTS) window.MTS.syncTabs(ix);
+    if (ix !== "SPX") {
+      const market = (data.markets || []).find((m) => m.id === ix);
+      if (!market) {
+        $("#app").innerHTML = `${switcher}<p class="error">Für diesen Index liegen gerade keine Daten vor.</p>`;
+        return;
+      }
+      renderMarket(market, switcher);
+      return;
+    }
+    setStand(data.stand);
 
     const idx = data.index;
     const up = data.up;
@@ -145,7 +216,7 @@
             <h3 class="tile-name">${escapeHtml(s.name)}</h3>
             <p class="tile-ticker">${escapeHtml(s.ticker)}</p>
           </div>
-          <p class="tile-price">${deNum(s.price)}</p>
+          <p class="tile-price">${deNum(s.price)} USD</p>
         </div>
         <p class="tile-pct" style="color:${col}">${dePct(s.pct)}</p>
         ${sparkSVG(s.sparkline, col)}
@@ -153,6 +224,7 @@
     }).join("");
 
     $("#app").innerHTML = `
+      ${switcher}
       <div class="main-layout">
         <section class="hero">
           <article class="card">

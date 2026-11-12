@@ -6,10 +6,9 @@ name: Kurse aktualisieren
 
 on:
   schedule:
-    # Alle ~15 Minuten, ca. 13:30–21:00 UTC Mo–Fr
-    # (deckt US-Handelszeiten in EST und EDT ab, inkl. Zeitumstellung)
-    - cron: "30,45 13 * * 1-5"
-    - cron: "0,15,30,45 14-20 * * 1-5"
+    # Alle ~15 Minuten, ca. 00:00–21:00 UTC Mo–Fr
+    # (Tokio/Seoul, London/Frankfurt und die US-Sitzung)
+    - cron: "*/15 0-20 * * 1-5"
     - cron: "0 21 * * 1-5"
   workflow_dispatch:
 
@@ -23,6 +22,7 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
 
