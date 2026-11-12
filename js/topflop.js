@@ -13,7 +13,7 @@
     const rows = entries.map((e, i) => {
       const col = pctColor(e.c, Math.max(maxAbs, 1));
       const w = (Math.abs(e.c) / maxAbs) * 100;
-      return `<div class="bar-row${i % 2 ? "" : " is-alt"}">
+      return `<div class="bar-row${i % 2 ? "" : " is-alt"}" data-t="${escapeHtml(e.t)}">
         ${window.MTS.starButton(e.t)}
         <div class="bar-id">
           <span class="mono">${escapeHtml(e.t)}</span>
@@ -34,7 +34,7 @@
 
   function wcol(title, colorClass, items, sideWord, nDays) {
     const rows = (items || []).map((e) => `
-      <div class="wh-row">
+      <div class="wh-row" data-t="${escapeHtml(e.t)}">
         ${window.MTS.starButton(e.t)}
         <span class="wh-chip ${colorClass}">${e.k}/${nDays}</span>
         <span class="mono">${escapeHtml(e.t)}</span>
@@ -97,6 +97,11 @@
       console.error(err);
     }
   }
+  document.getElementById("app").addEventListener("click", (e) => {
+    if (e.target.closest("[data-star]")) return;
+    const row = e.target.closest("[data-t]");
+    if (row) location.href = `aktie.html?t=${encodeURIComponent(row.dataset.t)}`;
+  });
   start();
   setInterval(() => { loadJSON("data/stocks.json").then(render).catch(() => {}); }, window.MTS.REFRESH_MS);
 })();

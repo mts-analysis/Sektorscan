@@ -428,12 +428,7 @@
       }
       const pick = e.target.closest("[data-pick]");
       if (pick) {
-        state.q = pick.dataset.pick;
-        const input = $("#q");
-        if (input) input.value = state.q;
-        showSuggest("");
-        const rows = sortRows(filtered());
-        renderList(rows, state.data.n || state.data.rows.length);
+        location.href = `aktie.html?t=${encodeURIComponent(pick.dataset.pick)}`;
         return;
       }
       const th = e.target.closest("[data-sort]");
@@ -446,7 +441,7 @@
         return;
       }
       const row = e.target.closest(".vrow[data-t]");
-      if (row) openChart(row.dataset.t);
+      if (row) location.href = `aktie.html?t=${encodeURIComponent(row.dataset.t)}`;
     });
     document.addEventListener("mts-merk", () => {
       const merkBtn = document.querySelector('[data-preset="merk"]');
@@ -469,43 +464,13 @@
       }
       if (e.key === "Enter" || e.key === " ") {
         const row = e.target.closest(".vrow[data-t]");
-        if (row) { e.preventDefault(); openChart(row.dataset.t); }
+        if (row) { e.preventDefault(); location.href = `aktie.html?t=${encodeURIComponent(row.dataset.t)}`; }
       }
     });
   }
 
   function openChart(ticker) {
-    const r = (state.data.rows || []).find((x) => x.t === ticker);
-    const modal = $("#chart-modal");
-    if (!r || !modal) return;
-    const col = pctColor(r.c);
-    const ix = (r.ix || []).map((x) => window.MTS.indexName(x)).join(" · ");
-    modal.hidden = false;
-    modal.innerHTML = `
-      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Kursverlauf ${escapeHtml(r.t)}">
-        <div class="modal-head">
-          <div>
-            <p class="modal-ticker">${escapeHtml(r.t)}</p>
-            <p class="modal-name">${escapeHtml(r.n)}  ·  ${escapeHtml(r.s)}</p>
-          </div>
-          <button type="button" class="chip" id="modal-close">Schließen</button>
-          ${window.MTS.starButton(r.t)}
-        </div>
-        <p class="modal-px">${window.MTS.money(r.p, r.ccy)}  <span style="color:${col}">${dePct(r.c)}</span></p>
-        ${sparkSVG(r.sp, col, 640, 180)}
-        <p class="note">Letzte 30 Handelstage, täglicher Schlusskurs.</p>
-        <ul class="stat-list">
-          <li>Rel. Volumen: ${r.rv == null ? "nicht verfügbar" : deNum(r.rv) + "×"}</li>
-          <li>Abstand 52W-Hoch: ${r.dH == null ? "–" : dePct(r.dH)}</li>
-          <li>Abstand 52W-Tief: ${r.dL == null ? "–" : dePct(r.dL)}</li>
-          <li>Börsenwert: ${r.mc == null ? "nicht verfügbar" : deNum(r.mc, 1) + " Mrd. USD"}</li>
-          <li>Index: ${escapeHtml(ix || "–")}</li>
-          <li>Wiederholer: ${r.wt}× Top, ${r.wf}× Flop</li>
-        </ul>
-      </div>`;
-    const close = () => { modal.hidden = true; modal.innerHTML = ""; };
-    $("#modal-close")?.addEventListener("click", close);
-    modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+    location.href = `aktie.html?t=${encodeURIComponent(ticker)}`;
   }
 
   async function start() {

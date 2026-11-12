@@ -28,6 +28,11 @@ London/Frankfurt und die US-Sitzung abgedeckt sind, und nur, wenn sich die
 Dateien geändert haben. Zusätzlich lässt sie sich unter **Actions → Kurse
 aktualisieren** manuell starten (*Run workflow*).
 
+Ein zweiter Lauf, **Historie und Earnings**, startet einmal werktags um
+07:15 UTC. Er schreibt die 1-Jahres-Schlüsse nach `data/history/` und die
+nächsten Yahoo-Termine nach `data/earnings.json`. Der 15-Minuten-Lauf fasst
+diese Dateien nicht an.
+
 ## Wiederholer und Earnings
 
 Der **Wiederholer-Zähler** (seit 06.11.2026) kommt aus einer Momentaufnahme

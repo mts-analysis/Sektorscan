@@ -228,6 +228,34 @@ def load_earnings_week() -> tuple[str | None, set[str], str]:
     return week_id, tickers, note + f" US-Ticker in der Liste: {sorted(t for t in tickers if '.' not in t or t.endswith('.B'))}."
 
 
+def earnings_this_week_from_calendar() -> tuple[set[str], str]:
+    """Tickers in data/earnings.json whose next date falls in the current ISO week."""
+    path = ROOT / "data" / "earnings.json"
+    if not path.exists():
+        return set(), ""
+    today = datetime.now(ZoneInfo("Europe/Berlin")).date()
+    year, week, _ = today.isocalendar()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:  # noqa: BLE001
+        return set(), f"earnings.json nicht lesbar ({e!r})."
+    found = set()
+    for item in data.get("items") or []:
+        raw = str(item.get("d") or "")
+        ticker = str(item.get("t") or "")
+        if not ticker or len(raw) < 10:
+            continue
+        try:
+            day = datetime.fromisoformat(raw[:10]).date()
+        except ValueError:
+            continue
+        iy, iw, _ = day.isocalendar()
+        if (iy, iw) == (year, week):
+            found.add(ticker)
+    note = f"Yahoo-Kalender diese ISO-Woche: {len(found)} Titel."
+    return found, note
+
+
 def wiederholer_counts(hist: dict) -> tuple[int, str, dict[str, int], dict[str, int], dict[str, dict]]:
     days = hist.get("days") or []
     started = (hist.get("meta") or {}).get("started") or "2026-11-06"
@@ -774,6 +802,10 @@ def update_stocks() -> int:
             print(f"warn: Stand aus sectors.json nicht gelesen ({e!r})", file=sys.stderr)
 
     week_id, earn_set, earn_note = load_earnings_week()
+    cal_set, cal_note = earnings_this_week_from_calendar()
+    if cal_set:
+        earn_set |= cal_set
+        earn_note = f"{earn_note} {cal_note}"
     print("Earnings:", week_id, earn_note, flush=True)
     hist = {"meta": {"started": "2026-11-06"}, "days": []}
     if HISTORY.exists():

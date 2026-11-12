@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#15171A">
+  <meta name="description" content="MTS Sektor-Scanner: Aktien-Detail. Keine Anlageberatung.">
+  <title>MTS Aktie</title>
+  <link rel="icon" href="assets/logo_T_white.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="MTS Scanner">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="page">
+    <header class="app-header">
+      <img class="logo" src="assets/logo_T_white.png" alt="MTS" width="148" height="48">
+      <div class="header-text">
+        <h1>Aktie</h1>
+        <p class="handle">MTS · @markt.trends.sektoren</p>
+      </div>
+      <div class="stand-wrap">
+        <p id="stand" class="stand">Stand wird geladen …</p>
+      </div>
+      <div id="market-status" class="market-row" hidden></div>
+    </header>
+    <main id="app" class="main">
+      <p class="loading">Daten werden geladen …</p>
+    </main>
+    <footer class="app-footer">
+      <p>Keine Anlageberatung.</p>
+    </footer>
+    <nav class="tabs" aria-label="Ansichten">
+      <a class="tab" href="./index.html">
+        <span class="tab-icon" aria-hidden="true">▦</span>
+        Sektoren
+      </a>
+      <a class="tab" href="./scanner.html">
+        <span class="tab-icon" aria-hidden="true">☰</span>
+        Scanner
+      </a>
+      <a class="tab" href="./topflop.html">
+        <span class="tab-icon" aria-hidden="true">▮</span>
+        Top / Flop
+      </a>
+      <a class="tab" href="./earnings.html">
+        <span class="tab-icon" aria-hidden="true">◷</span>
+        Termine
+      </a>
+    </nav>
+  </div>
+  <script src="js/common.js" defer></script>
+  <script src="js/aktie.js" defer></script>
+</body>
+</html>

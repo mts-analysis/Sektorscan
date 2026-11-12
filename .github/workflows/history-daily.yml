@@ -1,0 +1,47 @@
+# Einmal täglich: 1-Jahres-Schlüsse und Earnings-Termine.
+# Kein push-Trigger, damit der Daten-Commit die Action nicht erneut startet.
+# Der 15-Minuten-Lauf bleibt davon unberührt.
+name: Historie und Earnings
+
+on:
+  schedule:
+    - cron: "15 7 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: history-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Abhängigkeiten
+        run: pip install -r requirements.txt
+
+      - name: Historie und Earnings
+        run: python history_daily.py
+
+      - name: Tagesdateien committen, falls geändert
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/history data/earnings.json
+          if git diff --staged --quiet; then
+            echo "Keine Änderung"
+            exit 0
+          fi
+          git commit -m "data: Historie und Earnings"
+          git pull --rebase --autostash origin HEAD
+          git push
