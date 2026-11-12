@@ -147,11 +147,28 @@ def sma_at(values: list[float], i: int, n: int) -> float | None:
     return sum(window) / n
 
 
-def compute_barometer(daily: dict[str, list[tuple[str, float]]]) -> dict:
-    """Compute today's and previous session's barometer from aligned daily closes."""
-    spx = daily[INDEX_TICKER]
+def compute_barometer(
+    daily: dict[str, list[tuple[str, float]]],
+    index_ticker: str = INDEX_TICKER,
+    sector_tickers: list[str] | None = None,
+    cyclical: list[str] | None = None,
+    defensive: list[str] | None = None,
+    source: str | None = None,
+) -> dict:
+    """Compute today's and previous session's barometer from aligned daily closes.
+
+    The S&P call uses the 11 sector ETFs. Other indices pass equal-weight
+    sector baskets built from their own constituents, plus that index's level.
+    """
+    sect = list(sector_tickers) if sector_tickers is not None else [t for t, _ in SECTORS]
+    cyc = list(cyclical) if cyclical is not None else list(CYC)
+    deff = list(defensive) if defensive is not None else list(DEF)
+    needed = [index_ticker, *sect]
+    missing = [t for t in needed if t not in daily]
+    if missing:
+        raise RuntimeError(f"missing series: {missing}")
     # align on the intersection of dates, keep chronological
-    date_sets = [set(d for d, _ in series) for series in daily.values()]
+    date_sets = [set(d for d, _ in daily[t]) for t in needed]
     common = sorted(set.intersection(*date_sets))
     if len(common) < 210:
         raise RuntimeError(f"not enough overlapping history for SMA 200 ({len(common)} days)")
@@ -160,9 +177,8 @@ def compute_barometer(daily: dict[str, list[tuple[str, float]]]) -> dict:
         m = dict(daily[ticker])
         return [m[d] for d in common]
 
-    sect = [t for t, _ in SECTORS]
-    closes = {t: col(t) for t in sect + [INDEX_TICKER]}
-    sp = closes[INDEX_TICKER]
+    closes = {t: col(t) for t in needed}
+    sp = closes[index_ticker]
     rsi = rsi_wilder(sp)
     # last two complete sessions
     days_out = []
@@ -182,7 +198,7 @@ def compute_barometer(daily: dict[str, list[tuple[str, float]]]) -> dict:
         sma50 = sma_at(sp, i, 50)
         sma200 = sma_at(sp, i, 200)
         if sma50 is None or sma200 is None:
-            raise RuntimeError("missing S&P SMA")
+            raise RuntimeError("missing index SMA")
         d50 = sp[i] / sma50 - 1.0
         d200 = sp[i] / sma200 - 1.0
         golden = sma50 > sma200
@@ -196,7 +212,11 @@ def compute_barometer(daily: dict[str, list[tuple[str, float]]]) -> dict:
             raise RuntimeError("missing RSI")
         momentum = clip((rsi_v - 30.0) / 40.0 * 100.0)
         r5 = {t: closes[t][i] / closes[t][i - 5] - 1.0 for t in sect}
-        spread = (sum(r5[t] for t in CYC) / len(CYC) - sum(r5[t] for t in DEF) / len(DEF)) * 100.0
+        cyc_ok = [t for t in cyc if t in r5]
+        def_ok = [t for t in deff if t in r5]
+        if not cyc_ok or not def_ok:
+            raise RuntimeError("missing cyclical or defensive sectors")
+        spread = (sum(r5[t] for t in cyc_ok) / len(cyc_ok) - sum(r5[t] for t in def_ok) / len(def_ok)) * 100.0
         risk = clip(50 + 5.0 * spread)
         score = int(round((breadth + trend + momentum + risk) / 4.0))
         days_out.append(
@@ -222,7 +242,30 @@ def compute_barometer(daily: dict[str, list[tuple[str, float]]]) -> dict:
             )
         )
     today, prev = days_out[1], days_out[0]
-    return {"today": today, "prev": prev, "source": "Yahoo Finance daily Close, Formel wie MTS Trend-Barometer"}
+    if source is None:
+        source = "Yahoo Finance daily Close, Formel wie MTS Trend-Barometer"
+    return {"today": today, "prev": prev, "source": source}
+
+
+def barometer_public(result: dict) -> dict:
+    """JSON shape used at the top level and on each markets[] entry."""
+    today, prev = result["today"], result["prev"]
+    return {
+        "score": today["score"],
+        "zone": today["zone"],
+        "zone_name": today["zone_name"],
+        "prev_score": prev["score"],
+        "prev_zone_name": prev["zone_name"],
+        "components": {
+            "breadth": today["breadth"],
+            "trend": today["trend"],
+            "momentum": today["momentum"],
+            "risk": today["risk"],
+        },
+        "session_date": today["date"],
+        "prev_session_date": prev["date"],
+        "source": result["source"],
+    }
 
 
 def last_price_and_pct(
@@ -347,7 +390,7 @@ def fetch_all() -> dict:
         meta_ts = int(datetime.now(timezone.utc).timestamp())
 
     stand = format_stand(meta_ts)
-    baro = compute_barometer(daily)
+    baro = barometer_public(compute_barometer(daily))
 
     def pack(ticker: str, name: str) -> dict:
         price, prev, pct, session = last_price_and_pct(daily[ticker], live_price.get(ticker))
@@ -377,21 +420,7 @@ def fetch_all() -> dict:
         "up": up,
         "down": down,
         "flat": flat,
-        "barometer": {
-            "score": baro["today"]["score"],
-            "zone": baro["today"]["zone"],
-            "zone_name": baro["today"]["zone_name"],
-            "prev_score": baro["prev"]["score"],
-            "prev_zone_name": baro["prev"]["zone_name"],
-            "components": {
-                "breadth": baro["today"]["breadth"],
-                "trend": baro["today"]["trend"],
-                "momentum": baro["today"]["momentum"],
-                "risk": baro["today"]["risk"],
-            },
-            "session_date": baro["today"]["date"],
-            "source": baro["source"],
-        },
+        "barometer": baro,
         "markets": [
             {
                 "id": "SPX",
@@ -406,6 +435,7 @@ def fetch_all() -> dict:
                 "down": down,
                 "flat": flat,
                 "currency": "USD",
+                "barometer": baro,
             }
         ],
     }

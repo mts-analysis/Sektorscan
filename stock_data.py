@@ -320,16 +320,19 @@ def fetch_quote_meta(yf_tickers: list[str], budget_s: float = 150.0) -> tuple[di
 
 
 MARKETS = [
-    {"id": "SPX", "name": "S&P 500", "tz": "America/New_York", "ccy": "USD", "kind": "sp500"},
-    {"id": "DAX", "name": "DAX 40", "tz": "Europe/Berlin", "ccy": "EUR", "kind": "listed", "file": "dax40_constituents.csv"},
-    {"id": "KS200", "name": "KOSPI 200", "tz": "Asia/Seoul", "ccy": "KRW", "kind": "listed", "file": "kospi200_constituents.csv"},
-    {"id": "N225", "name": "Nikkei 225", "tz": "Asia/Tokyo", "ccy": "JPY", "kind": "listed", "file": "nikkei225_constituents.csv"},
-    {"id": "UKX", "name": "FTSE 100", "tz": "Europe/London", "ccy": "GBP", "kind": "listed", "file": "ftse100_constituents.csv"},
+    {"id": "SPX", "name": "S&P 500", "tz": "America/New_York", "ccy": "USD", "kind": "sp500", "index": "^GSPC"},
+    {"id": "DAX", "name": "DAX 40", "tz": "Europe/Berlin", "ccy": "EUR", "kind": "listed", "file": "dax40_constituents.csv", "index": "^GDAXI"},
+    {"id": "KS200", "name": "KOSPI 200", "tz": "Asia/Seoul", "ccy": "KRW", "kind": "listed", "file": "kospi200_constituents.csv", "index": "^KS200"},
+    {"id": "N225", "name": "Nikkei 225", "tz": "Asia/Tokyo", "ccy": "JPY", "kind": "listed", "file": "nikkei225_constituents.csv", "index": "^N225"},
+    {"id": "UKX", "name": "FTSE 100", "tz": "Europe/London", "ccy": "GBP", "kind": "listed", "file": "ftse100_constituents.csv", "index": "^FTSE"},
 ]
 SECTOR_ORDER = [
     "Technologie", "Finanzen", "Gesundheit", "Zyklischer Konsum", "Basiskonsum",
     "Industrie", "Energie", "Grundstoffe", "Versorger", "Immobilien", "Kommunikation",
 ]
+# Same groups as the S&P sector ETFs (XLK XLY XLF XLI XLC vs XLP XLU XLV).
+CYC_SECTORS = ["Technologie", "Zyklischer Konsum", "Finanzen", "Industrie", "Kommunikation"]
+DEF_SECTORS = ["Basiskonsum", "Versorger", "Gesundheit"]
 FX_TICKERS = {"EUR": "EURUSD=X", "GBP": "GBPUSD=X", "JPY": "USDJPY=X", "KRW": "USDKRW=X"}
 
 
@@ -547,6 +550,125 @@ def _basket_spark(close_df, tickers: list[str], days: list[str]) -> list[float]:
     return [round(float(v), 2) for v in avg.tolist()]
 
 
+def _series_pairs(frame, ticker: str) -> list[tuple[str, float]]:
+    if ticker not in frame.columns:
+        return []
+    s = frame[ticker].dropna()
+    return [(str(d), float(v)) for d, v in s.items() if v and float(v) > 0]
+
+
+def _basket_level(close_df, tickers: list[str], min_names: int = 3) -> list[tuple[str, float]]:
+    """Equal-weight price index from daily member returns. Level starts at 100."""
+    import pandas as pd
+
+    cols = [t for t in tickers if t in close_df.columns]
+    if len(cols) < min_names:
+        return []
+    sub = close_df[cols].apply(pd.to_numeric, errors="coerce").sort_index()
+    # Return versus the previous available print, so a missing calendar day
+    # does not drop the market's own latest session.
+    prev = sub.ffill().shift(1)
+    rets = (sub / prev - 1.0).where(sub.notna())
+    level = 100.0
+    out: list[tuple[str, float]] = []
+    started = False
+    for d in sub.index:
+        if not started:
+            if int(sub.loc[d].notna().sum()) >= min_names:
+                started = True
+                out.append((str(d), level))
+            continue
+        valid = rets.loc[d].dropna()
+        if len(valid) < min_names:
+            continue
+        level *= 1.0 + float(valid.mean())
+        if level > 0:
+            out.append((str(d), level))
+    return out
+
+
+def _load_index_levels(symbols: list[str], start: str, end: str):
+    """Official index closes. A short or failed series is omitted."""
+    import yfinance as yf
+
+    found: dict[str, list[tuple[str, float]]] = {}
+    try:
+        raw = yf.download(
+            symbols,
+            start=start,
+            end=end,
+            auto_adjust=False,
+            group_by="ticker",
+            threads=True,
+            progress=False,
+        )
+        raw = _normalize_download(raw, symbols)
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: Indexhistorie nicht geladen ({e!r})", file=sys.stderr)
+        return found
+    for sym in symbols:
+        try:
+            s = raw[sym]["Close"].dropna()
+            pairs = [(str(d)[:10], float(v)) for d, v in s.items() if v and float(v) > 0]
+            # yfinance may label the index with a datetime; keep one close per day
+            merged: dict[str, float] = {}
+            for d, v in pairs:
+                merged[d] = v
+            pairs = sorted(merged.items())
+            if pairs:
+                found[sym] = pairs
+        except Exception:
+            continue
+    return found
+
+
+def _barometer_for_market(market: dict, close_df, book: dict, session: str | None, index_levels: dict) -> dict | None:
+    """Same four components as the S&P barometer, on this index's session."""
+    from update import barometer_public, compute_barometer
+
+    ix = market["id"]
+    if ix == "SPX":
+        return None
+    members = [rec["yf"] for rec in book.values() if ix in rec["ix"]]
+    source = "Yahoo Finance, gleiche Formel (Breite, Trend, Momentum, Risiko), Sektoren gleichgewichtet aus den Indexmitgliedern"
+    index_pairs = list(index_levels.get(market["index"]) or [])
+    if session:
+        index_pairs = [(d, v) for d, v in index_pairs if d <= session]
+    if len(index_pairs) < 210:
+        index_pairs = _basket_level(close_df, members, min_names=max(8, len(members) // 10))
+        if session:
+            index_pairs = [(d, v) for d, v in index_pairs if d <= session]
+        source += ". Indexstand gleichgewichtet aus den Mitgliedern, die Yahoo-Indexhistorie reicht nicht für SMA 200"
+        print(f"warn: {ix} Indexhistorie kurz, Barometer nutzt Mitglieder-Index", flush=True)
+    if len(index_pairs) < 210:
+        raise RuntimeError(f"{ix}: nur {len(index_pairs)} Indexpunkte")
+
+    daily: dict[str, list[tuple[str, float]]] = {market["index"]: index_pairs}
+    used = []
+    for name in SECTOR_ORDER:
+        tickers = [rec["yf"] for rec in book.values() if ix in rec["ix"] and rec["s"] == name]
+        basket = _basket_level(close_df, tickers, min_names=1)
+        if session:
+            basket = [(d, v) for d, v in basket if d <= session]
+        if len(basket) < 60:
+            continue
+        daily[name] = basket
+        used.append(name)
+    cyc = [n for n in CYC_SECTORS if n in used]
+    deff = [n for n in DEF_SECTORS if n in used]
+    if len(used) < 6 or not cyc or not deff:
+        raise RuntimeError(f"{ix}: zu wenige Sektoren ({len(used)})")
+    result = compute_barometer(
+        daily,
+        index_ticker=market["index"],
+        sector_tickers=used,
+        cyclical=cyc,
+        defensive=deff,
+        source=source,
+    )
+    return barometer_public(result)
+
+
 def _scale_gbpence(frame, tickers: list[str]) -> None:
     for t in tickers:
         if t in frame.columns:
@@ -734,6 +856,24 @@ def update_stocks() -> int:
     def pack_side(items: list[dict]) -> list[dict]:
         return [{"t": r["t"], "n": r["n"], "s": r["s"], "c": r["c"], "p": r["p"], "ccy": r["ccy"]} for r in items]
 
+    index_levels = _load_index_levels([m["index"] for m in MARKETS if m["id"] != "SPX"], start, end)
+    barometers: dict[str, dict] = {}
+    for market in MARKETS:
+        if market["id"] == "SPX":
+            continue
+        try:
+            sess_lim = sessions.get(market["id"], (None, None))[0]
+            pub = _barometer_for_market(market, close_df, book, sess_lim, index_levels)
+            if pub:
+                barometers[market["id"]] = pub
+                print(
+                    f"Barometer {market['id']}: {pub['score']}/100 {pub['zone_name']} "
+                    f"Sitzung {pub['session_date']}",
+                    flush=True,
+                )
+        except Exception as e:  # noqa: BLE001
+            print(f"warn: Barometer {market['id']} nicht berechnet ({e!r})", file=sys.stderr)
+
     by_index: dict[str, dict] = {}
     for market in MARKETS:
         ix = market["id"]
@@ -768,6 +908,7 @@ def update_stocks() -> int:
             "top10": pack_side(ranked[:10]),
             "flop10": pack_side(flop[:10]),
             "sectors": sectors,
+            "barometer": barometers.get(ix),
         }
         print(
             f"{ix}: n={len(members)} missing={len(missing_by.get(ix, []))} "
@@ -868,6 +1009,8 @@ def _patch_sectors(by_index: dict[str, dict]) -> None:
         base["up_stocks"] = info.get("up")
         base["down_stocks"] = info.get("down")
         base["n_stocks"] = info.get("n")
+        if info.get("barometer"):
+            base["barometer"] = info["barometer"]
         if market["id"] != "SPX":
             sectors = info.get("sectors") or []
             base["sectors"] = sectors

@@ -130,6 +130,33 @@
       : "Stand unbekannt";
   }
 
+  function deSession(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
+  }
+
+  function barometerCard(baro) {
+    if (!baro || baro.score == null) {
+      return `<article class="card">
+        <p class="kicker">MTS Trend-Barometer</p>
+        <p class="hero-line">Für diese Sitzung gerade nicht verfügbar.</p>
+      </article>`;
+    }
+    const zoneColor = ZONE_COLORS[baro.zone] || ZONE_COLORS[2];
+    const sess = deSession(baro.session_date);
+    return `<article class="card">
+      <p class="kicker">MTS Trend-Barometer</p>
+      <div class="gauge-wrap">
+        ${gaugeSVG(baro.score, baro.zone)}
+        <p class="baro-score">${baro.score}</p>
+        <p class="baro-of">von 100</p>
+        <span class="zone-pill" style="color:${zoneColor}">${escapeHtml(baro.zone_name)}</span>
+        ${sess ? `<p class="baro-prev">Sitzung ${escapeHtml(sess)}</p>` : ""}
+        <p class="baro-prev">Vortag ${baro.prev_score}/100  ·  ${escapeHtml(baro.prev_zone_name)}</p>
+      </div>
+    </article>`;
+  }
+
   function renderMarket(market, switcher) {
     setStand(market.stand);
     const upCls = market.pct >= 0 ? "is-up" : "is-down";
@@ -138,7 +165,6 @@
     const upSectors = sectors.filter((s) => s.pct > 0).length;
     const nStocks = market.n_stocks || 0;
     const upStocks = market.up_stocks || 0;
-    const ccy = market.price_currency || "";
     const tiles = sectors.map((s, i) => {
       const col = pctColor(s.pct);
       const tail = nSectors === 11 && i >= 9 ? (i === 9 ? " tail-a" : " tail-b") : "";
@@ -168,12 +194,7 @@
             <p class="hero-line">${upSectors} von ${nSectors} Sektoren im Plus</p>
             <p class="hero-sub">${upStocks} von ${nStocks} Titeln im Plus · letzte Sitzung</p>
           </article>
-          <article class="card">
-            <p class="kicker">Marktbreite</p>
-            <p class="spx-price">${upStocks}<span class="hero-sub"> / ${nStocks}</span></p>
-            <p class="hero-line">Titel im Plus</p>
-            <p class="hero-sub">Ø der Titel je Sektor, Kurse in ${escapeHtml(ccy || "Landeswährung")}</p>
-          </article>
+          ${barometerCard(market.barometer)}
         </section>
         <section>
           <div class="section-head">
@@ -204,7 +225,6 @@
     const up = data.up;
     const baro = data.barometer;
     const upCls = idx.pct >= 0 ? "is-up" : "is-down";
-    const zoneColor = ZONE_COLORS[baro.zone] || ZONE_COLORS[2];
 
     const tiles = data.sectors.map((s, i) => {
       const col = pctColor(s.pct);
@@ -234,16 +254,7 @@
             <p class="hero-line">${up} von 11 Sektoren im Plus</p>
             <p class="hero-sub">US-Sitzung · ${escapeHtml(data.stand ? data.stand.et.replace(/,.*$/, "") : idx.session_date)}</p>
           </article>
-          <article class="card">
-            <p class="kicker">MTS Trend-Barometer</p>
-            <div class="gauge-wrap">
-              ${gaugeSVG(baro.score, baro.zone)}
-              <p class="baro-score">${baro.score}</p>
-              <p class="baro-of">von 100</p>
-              <span class="zone-pill" style="color:${zoneColor}">${escapeHtml(baro.zone_name)}</span>
-              <p class="baro-prev">Vortag ${baro.prev_score}/100  ·  ${escapeHtml(baro.prev_zone_name)}</p>
-            </div>
-          </article>
+          ${barometerCard(baro)}
         </section>
         <section>
           <div class="section-head">
