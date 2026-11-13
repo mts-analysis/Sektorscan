@@ -34,7 +34,7 @@
     rets: null,
     filtersOpen: window.matchMedia("(min-width: 768px) and (min-height: 700px)").matches,
   };
-  const ROW_H = 44;
+  const ROW_H = 52;
 
   function applyParams() {
     const p = params();
@@ -281,10 +281,13 @@
   function rowHtml(r) {
     const ch = shownChange(r);
     const col = pctColor(ch);
+    const name = window.MTS.stockName(r);
     return `<div class="vrow vgrid" data-t="${escapeHtml(r.t)}" tabindex="0">
       ${window.MTS.starButton(r.t)}
-      <span class="mono">${escapeHtml(r.t)}</span>
-      <span class="name">${escapeHtml(r.n)}</span>
+      <div class="id-block">
+        <span class="name">${escapeHtml(name)}</span>
+        ${name === r.t ? "" : `<span class="id-ticker">${escapeHtml(r.t)}</span>`}
+      </div>
       <span class="num">${window.MTS.money(r.p, r.ccy)}</span>
       <span class="num" style="color:${col}">${ch == null ? "–" : dePct(ch)}</span>
       <span class="num muted">${r.rv == null ? "–" : deNum(r.rv)}</span>
@@ -304,7 +307,6 @@
     card.innerHTML = `
       <div class="vhead vgrid">
         <span></span>
-        ${headCell("t", "Ticker", false)}
         ${headCell("n", "Name", false)}
         ${headCell("p", "Kurs", true)}
         ${headCell("c", "%", true)}
@@ -357,10 +359,10 @@
     box.hidden = false;
     box.innerHTML = hits.map((r) => {
       const ix = (r.ix || []).map((id) => window.MTS.indexName(id)).join(", ");
+      const name = window.MTS.stockName(r);
       return `<button type="button" class="suggest-item" data-pick="${escapeHtml(r.t)}">
-        <span class="mono">${escapeHtml(r.t)}</span>
-        <span>${escapeHtml(r.n)}</span>
-        <span class="muted">${escapeHtml(ix)}</span>
+        <span>${escapeHtml(name)}</span>
+        <span class="muted">${escapeHtml(r.t)}${ix ? " · " + escapeHtml(ix) : ""}</span>
       </button>`;
     }).join("");
   }

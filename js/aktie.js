@@ -50,6 +50,7 @@
     if (!r) return;
     const col = pctColor(r.c);
     const ix = (r.ix || []).map((id) => indexName(id)).join(" · ");
+    const name = window.MTS.stockName(r);
     const values = chartValues();
     const note = state.range === "1y"
       ? (state.year ? "Tägliche Schlusskurse, etwa ein Jahr." : "Verlauf wird geladen …")
@@ -59,8 +60,8 @@
       <article class="card">
         <div class="tf-head">
           <div>
-            <p class="kicker">${escapeHtml(r.t)}</p>
-            <p class="modal-name">${escapeHtml(r.n)}</p>
+            <p class="id-title">${escapeHtml(name)}</p>
+            ${name === r.t ? "" : `<p class="kicker">${escapeHtml(r.t)}</p>`}
           </div>
           ${starButton(r.t)}
         </div>
@@ -86,7 +87,7 @@
           <li>Nächster Termin: ${escapeHtml(earnText(state.earn))}</li>
         </ul>
       </article>`;
-    document.title = `${r.t} · MTS`;
+    document.title = `${name} · MTS`;
   }
 
   async function loadYear() {

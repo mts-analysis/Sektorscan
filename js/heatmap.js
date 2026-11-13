@@ -53,6 +53,7 @@
     const groups = SECTORS.map((name) => {
       const members = rows.filter((r) => r.s === name).map((r) => ({
         t: r.t,
+        n: r.n,
         size: Math.max(Number(r.mc) || 0, 0.02),
         pct: changeOf(r),
       })).sort((a, b) => b.size - a.size);
@@ -63,13 +64,15 @@
     lastTiles = [];
     let yCursor = 0;
     const html = groups.map((g) => {
-      const height = Math.max(92, Math.round((g.mc / total) * 920));
+      const height = Math.max(128, Math.round((g.mc / total) * 1100));
       const frac = g.mc / total;
       const rects = squarify(g.members, 0, 0, 100, 100);
       const tiles = rects.map((rect) => {
         const pad = 0.6;
+        const label = window.MTS.shortName(rect.item.n, rect.item.t);
         lastTiles.push({
           t: rect.item.t,
+          n: label,
           pct: dePct(rect.item.pct),
           pctNum: rect.item.pct,
           color: pctColor(rect.item.pct),
@@ -78,10 +81,14 @@
           w: Math.max(0, (rect.w - pad * 2) / 100),
           h: Math.max(0, ((rect.h - pad * 2) / 100) * frac),
         });
-        const show = rect.w > 12 && rect.h > 16;
+        const namePx = Math.max(11, Math.min(18, Math.round(Math.min(rect.w, rect.h * 1.3) * 0.22 + 9)));
+        const showName = rect.w >= 9 && rect.h >= 11;
+        const showTicker = showName && rect.item.t !== label && rect.w >= 18 && rect.h >= 22;
+        const showPct = rect.w >= 14 && rect.h >= 22;
         return `<a class="heat-tile" href="aktie.html?t=${encodeURIComponent(rect.item.t)}" style="left:${rect.x}%;top:${rect.y}%;width:${rect.w}%;height:${rect.h}%;background:${pctColor(rect.item.pct)}">
-          ${show ? `<span>${escapeHtml(rect.item.t)}</span>` : ""}
-          ${rect.w > 16 && rect.h > 28 ? `<span>${dePct(rect.item.pct)}</span>` : ""}
+          ${showName ? `<span class="heat-name" style="font-size:${namePx}px">${escapeHtml(label)}</span>` : ""}
+          ${showTicker ? `<span class="heat-meta">${escapeHtml(rect.item.t)}</span>` : ""}
+          ${showPct ? `<span class="heat-pct">${dePct(rect.item.pct)}</span>` : ""}
         </a>`;
       }).join("");
       yCursor += frac;

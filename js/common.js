@@ -198,6 +198,21 @@
       const hit = C.INDICES.find((x) => x.id === id);
       return hit ? hit.name : id;
     },
+    stockName(row) {
+      const ticker = row && row.t ? String(row.t) : "";
+      const name = row && row.n ? String(row.n).trim() : "";
+      if (!name || name.toLowerCase() === "nan") return ticker;
+      return name;
+    },
+    shortName(name, ticker) {
+      const raw = C.stockName({ n: name, t: ticker || "" });
+      const cut = raw
+        .replace(/,?\s+(Incorporated|Limited)$/i, "")
+        .replace(/\s+(Co\.,?\s*Ltd\.?|Corporation|Corp\.?|Inc\.?|Ltd\.?|PLC|plc)$/i, "")
+        .replace(/,\s*$/, "")
+        .trim();
+      return cut || raw || ticker || "";
+    },
     pageIndex() {
       const q = new URLSearchParams(location.search).get("ix");
       return C.INDICES.some((x) => x.id === q) ? q : "SPX";

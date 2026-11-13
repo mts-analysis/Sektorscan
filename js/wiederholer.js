@@ -12,10 +12,10 @@
   }
 
   function rowHtml(item, n) {
+    const name = window.MTS.stockName(item);
     return `<a class="wh-line" href="aktie.html?t=${encodeURIComponent(item.t)}">
-      <span class="mono">${escapeHtml(item.t)}</span>
-      <span class="wh-name">${escapeHtml(item.n)}</span>
-      <span class="wh-sec">${escapeHtml(item.s)}</span>
+      <span class="wh-name">${escapeHtml(name)}</span>
+      <span class="wh-sec">${escapeHtml(item.t)} · ${escapeHtml(item.s)}</span>
       <span class="wh-count">${item.k} von ${n} Handelstagen</span>
     </a>`;
   }

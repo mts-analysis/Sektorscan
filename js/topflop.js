@@ -16,8 +16,8 @@
       return `<div class="bar-row${i % 2 ? "" : " is-alt"}" data-t="${escapeHtml(e.t)}">
         ${window.MTS.starButton(e.t)}
         <div class="bar-id">
-          <span class="mono">${escapeHtml(e.t)}</span>
-          <span class="muted">${escapeHtml(e.n)}${e.s ? ` · <a class="sector-link" href="sektor.html?ix=${encodeURIComponent(ix)}&s=${encodeURIComponent(e.s)}">${escapeHtml(e.s)}</a>` : ""}${e.p == null ? "" : " · " + window.MTS.money(e.p, e.ccy)}</span>
+          <span class="name">${escapeHtml(window.MTS.stockName(e))}</span>
+          <span class="muted">${escapeHtml(e.t)}${e.s ? ` · <a class="sector-link" href="sektor.html?ix=${encodeURIComponent(ix)}&s=${encodeURIComponent(e.s)}">${escapeHtml(e.s)}</a>` : ""}${e.p == null ? "" : " · " + window.MTS.money(e.p, e.ccy)}</span>
         </div>
         <span class="bar-val" style="color:${col}">${dePct(e.c)}</span>
         <div class="bar-track"><span class="bar-fill" style="width:${w}%;background:${col}"></span></div>
@@ -37,8 +37,8 @@
       <div class="wh-row" data-t="${escapeHtml(e.t)}">
         ${window.MTS.starButton(e.t)}
         <span class="wh-chip ${colorClass}">${e.k}/${nDays}</span>
-        <span class="mono">${escapeHtml(e.t)}</span>
-        <span class="muted">${escapeHtml(e.n)}  ·  <a class="sector-link" href="sektor.html?ix=${encodeURIComponent(ix)}&s=${encodeURIComponent(e.s || "")}">${escapeHtml(e.s || "")}</a></span>
+        <span class="name">${escapeHtml(window.MTS.stockName(e))}</span>
+        <span class="muted">${escapeHtml(e.t)}  ·  <a class="sector-link" href="sektor.html?ix=${encodeURIComponent(ix)}&s=${encodeURIComponent(e.s || "")}">${escapeHtml(e.s || "")}</a></span>
         
       </div>`).join("") || `<p class="empty">Keine Wiederholer mit mindestens 2 Tagen.</p>`;
     return `<div class="wh-col">

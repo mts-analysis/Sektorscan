@@ -384,8 +384,11 @@ def load_universe() -> dict[str, dict]:
 
     def add(yahoo: str, display: str, name: str, sector: str, ix: str) -> None:
         rec = book.get(yahoo)
+        clean = " ".join(str(name or "").replace("\xa0", " ").split())
+        if not clean or clean.lower() == "nan":
+            clean = display
         if rec is None:
-            book[yahoo] = {"yf": yahoo, "t": display, "n": name, "s": sector, "ix": [ix]}
+            book[yahoo] = {"yf": yahoo, "t": display, "n": clean, "s": sector, "ix": [ix]}
             return
         if ix not in rec["ix"]:
             rec["ix"].append(ix)

@@ -4,8 +4,9 @@
 
   function stockLink(row) {
     const col = pctColor(row.c);
+    const name = window.MTS.stockName(row);
     return `<a class="sector-stock" href="aktie.html?t=${encodeURIComponent(row.t)}">
-      <span class="name"><span class="mono">${escapeHtml(row.t)}</span> ${escapeHtml(row.n)}</span>
+      <span class="name">${escapeHtml(name)}${name === row.t ? "" : `<span class="id-ticker">${escapeHtml(row.t)}</span>`}</span>
       <span style="color:${col};font-weight:800">${dePct(row.c)}</span>
     </a>`;
   }

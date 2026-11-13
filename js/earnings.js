@@ -55,9 +55,10 @@
       const rows = groups.get(day).map((item) => {
         const row = state.rows.get(item.t);
         const ix = (row.ix || []).map((id) => indexName(id)).join(", ");
+        const name = row ? window.MTS.stockName(row) : item.t;
         return `<a class="earn-row" href="aktie.html?t=${encodeURIComponent(item.t)}">
-          <span class="mono">${escapeHtml(item.t)}</span>
-          <span>${escapeHtml(row.n)} <span class="muted">${escapeHtml(row.s)} · ${escapeHtml(ix)}</span></span>
+          <span class="name">${escapeHtml(name)}</span>
+          <span>${name === item.t ? "" : `<span class="id-ticker">${escapeHtml(item.t)}</span> `}<span class="muted">${escapeHtml(row ? row.s : "")} · ${escapeHtml(ix)}</span></span>
           ${tag(item)}
         </a>`;
       }).join("");

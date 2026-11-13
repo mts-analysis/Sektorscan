@@ -110,12 +110,13 @@
         rounded(ctx, x, y, colW, 124, 18);
         ctx.fillStyle = "#262a30";
         ctx.fill();
+        const name = row.n && row.n !== row.t ? row.n : row.t;
         ctx.fillStyle = "#eceff1";
-        ctx.font = "800 36px 'Be Vietnam Pro', sans-serif";
-        ctx.fillText(fit(ctx, row.t, colW - 40), x + 20, y + 48);
+        ctx.font = "800 34px 'Be Vietnam Pro', sans-serif";
+        ctx.fillText(fit(ctx, name, colW - 40), x + 20, y + 48);
         ctx.fillStyle = "#9aa3ad";
-        ctx.font = "300 26px 'Be Vietnam Pro', sans-serif";
-        ctx.fillText(fit(ctx, row.n, colW - 40), x + 20, y + 84);
+        ctx.font = "600 24px 'Be Vietnam Pro', sans-serif";
+        ctx.fillText(fit(ctx, name === row.t ? "" : row.t, colW - 40), x + 20, y + 82);
         ctx.fillStyle = row.color || "#eceff1";
         ctx.font = "900 36px 'Barlow Condensed', sans-serif";
         ctx.fillText(row.pct || "–", x + 20, y + 114);
@@ -136,13 +137,20 @@
       ctx.globalAlpha = 0.9;
       ctx.fill();
       ctx.globalAlpha = 1;
-      if (w < 88 || h < 46) return;
+      if (w < 64 || h < 36) return;
+      const name = tile.n && tile.n !== tile.t ? tile.n : tile.t;
       ctx.fillStyle = "#15171a";
       ctx.font = "800 28px 'Be Vietnam Pro', sans-serif";
-      ctx.fillText(fit(ctx, tile.t, w - 16), x + 8, y + 32);
-      if (h > 72) {
+      ctx.fillText(fit(ctx, name, w - 16), x + 8, y + 30);
+      let next = 54;
+      if (h > 68 && name !== tile.t) {
+        ctx.font = "600 20px 'Be Vietnam Pro', sans-serif";
+        ctx.fillText(fit(ctx, tile.t, w - 16), x + 8, next);
+        next += 26;
+      }
+      if (h > next) {
         ctx.font = "900 26px 'Barlow Condensed', sans-serif";
-        ctx.fillText(fit(ctx, tile.pct, w - 16), x + 8, y + 62);
+        ctx.fillText(fit(ctx, tile.pct, w - 16), x + 8, next);
       }
     });
   }
