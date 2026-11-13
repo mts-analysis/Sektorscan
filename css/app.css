@@ -105,6 +105,20 @@ body { padding: 0; }
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
+.back-btn {
+  appearance: none;
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--fg);
+  font: 700 0.95rem "Be Vietnam Pro", system-ui, sans-serif;
+  cursor: pointer;
+}
+.back-btn[hidden] { display: none; }
 .logo {
   height: 48px;
   width: auto;

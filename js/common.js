@@ -526,6 +526,19 @@
   }
 
   const header = document.querySelector(".app-header");
+  if (header && !header.querySelector(".back-btn")) {
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "back-btn";
+    back.textContent = "‹ Zurück";
+    const home = pageFile() === "index.html";
+    if (home && history.length <= 1) back.hidden = true;
+    back.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else if (!home) location.href = "index.html";
+    });
+    header.insertBefore(back, header.firstChild);
+  }
   if (header && !header.querySelector("[data-theme-toggle]")) {
     const btn = document.createElement("button");
     btn.type = "button";
