@@ -65,6 +65,7 @@
     else if (spec.kind === "heatmap") drawHeat(ctx, spec);
     else if (spec.kind === "compare") drawCompare(ctx, spec);
     else if (spec.kind === "week") drawWeek(ctx, spec);
+    else if (spec.kind === "rad") drawRad(ctx, spec);
 
     ctx.fillStyle = "#6e7680";
     ctx.font = "600 28px 'Be Vietnam Pro', sans-serif";
@@ -210,6 +211,69 @@
       ctx.font = "900 40px 'Barlow Condensed', sans-serif";
       ctx.fillText(row.pct || "–", 760, y + 66);
     });
+  }
+
+  function drawRad(ctx, spec) {
+    const cx = W / 2;
+    const cy = 980;
+    const R = 620;
+    const rings = [
+      ["#2ec8c4", Math.PI, Math.PI * 1.5],
+      ["#3ddc6a", Math.PI * 1.5, Math.PI * 2],
+      ["#f0c14a", 0, Math.PI * 0.5],
+      ["#ff4b5c", Math.PI * 0.5, Math.PI],
+    ];
+    ctx.lineWidth = 46;
+    rings.forEach(([color, a0, a1]) => {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.arc(cx, cy, R, a0, a1);
+      ctx.stroke();
+    });
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - R, cy);
+    ctx.lineTo(cx + R, cy);
+    ctx.moveTo(cx, cy - R);
+    ctx.lineTo(cx, cy + R);
+    ctx.stroke();
+    ctx.font = "700 28px 'Be Vietnam Pro', sans-serif";
+    ctx.fillStyle = "#d7dde3";
+    ctx.fillText("Erholt sich", 120, cy - R + 20);
+    ctx.fillText("Führend", W - 360, cy - R + 20);
+    ctx.fillText("Schwächelt", W - 360, cy + R + 10);
+    ctx.fillText("Hinkt hinterher", 120, cy + R + 10);
+    (spec.points || []).forEach((pt) => {
+      const tail = pt.tail || [];
+      if (tail.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = pt.color || "#eceff1";
+        ctx.lineWidth = 4;
+        tail.forEach((p, i) => {
+          const x = cx + p[0] * R;
+          const y = cy - p[1] * R;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+      const x = cx + pt.x * R;
+      const y = cy - pt.y * R;
+      ctx.beginPath();
+      ctx.fillStyle = "#f4f7f8";
+      ctx.arc(x, y, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = pt.color || "#eceff1";
+      ctx.stroke();
+      ctx.fillStyle = "#f4f7f8";
+      ctx.font = "800 28px 'Be Vietnam Pro', sans-serif";
+      ctx.fillText(pt.t || "", x + 22, y - 18);
+    });
+    ctx.fillStyle = "#9aa3ad";
+    ctx.font = "300 26px 'Be Vietnam Pro', sans-serif";
+    ctx.fillText(fit(ctx, spec.foot || "", 940), 72, 1760);
   }
 
   async function saveCard(spec) {

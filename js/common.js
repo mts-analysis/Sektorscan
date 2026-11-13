@@ -235,6 +235,12 @@
       if (!name || name.toLowerCase() === "nan") return ticker;
       return name;
     },
+    seasonLine(cell, month) {
+      if (!cell || !cell.n) return "";
+      const names = ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."];
+      const label = names[(month || 1) - 1] || "";
+      return `${label} historisch: Ø ${C.dePct(cell.excess)} vs S&P, ${cell.beat}/${cell.n} Jahre stärker`;
+    },
     shortName(name, ticker) {
       const raw = C.stockName({ n: name, t: ticker || "" });
       const cut = raw
@@ -493,7 +499,7 @@
     document.dispatchEvent(new CustomEvent("mts-merk", { detail: { ticker, on } }));
   }, true);
 
-  const PAGES = ["index.html", "heatmap.html", "vergleich.html", "scanner.html", "topflop.html", "earnings.html"];
+  const PAGES = ["index.html", "rad.html", "heatmap.html", "vergleich.html", "scanner.html", "topflop.html", "earnings.html"];
 
   function pageFile() {
     const name = location.pathname.split("/").pop();

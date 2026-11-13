@@ -18,6 +18,21 @@
     return `<article class="card"><h2 class="kicker">${escapeHtml(title)}</h2>${body}</article>`;
   }
 
+  const ETF = {
+    "Technologie": "XLK", "Gesundheit": "XLV", "Finanzen": "XLF", "Zyklischer Konsum": "XLY",
+    "Basiskonsum": "XLP", "Energie": "XLE", "Industrie": "XLI", "Grundstoffe": "XLB",
+    "Versorger": "XLU", "Immobilien": "XLRE", "Kommunikation": "XLC",
+  };
+
+  function seasonHint(name) {
+    const doc = window.__mtsSeason;
+    const id = ETF[name];
+    const cell = doc && id && doc.sectors && doc.sectors[id] && doc.sectors[id].months[String(new Date().getMonth() + 1)];
+    if (!cell) return "";
+    return `<p class="season-hint">${escapeHtml(window.MTS.seasonLine(cell, new Date().getMonth() + 1))}</p>
+      <p class="note">Historischer Durchschnitt – keine Prognose. Keine Anlageberatung.</p>`;
+  }
+
   function render(stocks, sectors) {
     const ix = pageIndex();
     syncTabs(ix);
@@ -51,6 +66,7 @@
         <p class="hero-pct" style="color:${col}">${dayPct == null ? "–" : dePct(dayPct)}</p>
         <p class="note">${escapeHtml(note)} · letzte Sitzung ${escapeHtml(session)}</p>
         <p class="hero-sub">${up} im Plus · ${down} im Minus${flat ? ` · ${flat} unverändert` : ""} · ${members.length} Titel</p>
+        ${ix === "SPX" ? seasonHint(name) : ""}
       </article>
       ${list("Top 5 des Tages", top, "Keine Titel im Plus.")}
       ${list("Flop 5 des Tages", flop, "Keine Titel im Minus.")}
@@ -59,10 +75,12 @@
 
   async function start() {
     try {
-      const [stocks, sectors] = await Promise.all([
+      const [stocks, sectors, season] = await Promise.all([
         loadJSON("data/stocks.json"),
         loadJSON("data/sectors.json"),
+        loadJSON("data/seasonality.json").catch(() => null),
       ]);
+      window.__mtsSeason = season;
       setStand(stocks);
       render(stocks, sectors);
       document.addEventListener("mts-theme", () => render(stocks, sectors));

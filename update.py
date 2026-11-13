@@ -411,6 +411,17 @@ def fetch_all() -> dict:
     down = sum(1 for s in sectors if s["pct"] < 0)
     flat = len(sectors) - up - down
     index = pack(INDEX_TICKER, INDEX_NAME)
+    spy = None
+    try:
+        time.sleep(0.15)
+        dres = fetch_chart("SPY", "1d", "5d")
+        daily["SPY"] = daily_pairs(dres)
+        meta = dres.get("meta") or {}
+        if meta.get("regularMarketPrice") is not None:
+            live_price["SPY"] = float(meta["regularMarketPrice"])
+        spy = pack("SPY", "SPY")
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: SPY-Kurs nicht geladen ({e!r})", file=sys.stderr)
 
     return {
         "updated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -418,6 +429,7 @@ def fetch_all() -> dict:
         "stand_note": "ca. 15 Min. verzögert",
         "source": "Yahoo Finance (unofficial chart API, Schlusskurs bzw. zeitverzögerter Kurs, unverzögert nicht verfügbar)",
         "index": index,
+        "spy": spy,
         "sectors": sectors,
         "up": up,
         "down": down,

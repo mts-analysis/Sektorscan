@@ -273,6 +273,143 @@ def write_returns_from_shards() -> Path:
     return out
 
 
+ETF_TICKERS = ["XLK", "XLV", "XLF", "XLY", "XLP", "XLE", "XLI", "XLB", "XLU", "XLRE", "XLC", "SPY"]
+ETF_NAMES = {
+    "XLK": "Technologie", "XLV": "Gesundheit", "XLF": "Finanzen", "XLY": "Zyklischer Konsum",
+    "XLP": "Basiskonsum", "XLE": "Energie", "XLI": "Industrie", "XLB": "Grundstoffe",
+    "XLU": "Versorger", "XLRE": "Immobilien", "XLC": "Kommunikation", "SPY": "S&P 500",
+}
+SEASON_PATH = ROOT / "data" / "seasonality.json"
+
+
+def _yf_frame(tickers: list[str], start: str, end: str, field: str) -> pd.DataFrame:
+    raw = yf.download(
+        tickers, start=start, end=end, interval="1d", auto_adjust=False,
+        group_by="ticker", threads=True, progress=False,
+    )
+    if raw is None or getattr(raw, "empty", True):
+        raise RuntimeError("yfinance leer")
+    if not isinstance(raw.columns, pd.MultiIndex):
+        raw = raw.copy()
+        raw.columns = pd.MultiIndex.from_product([[tickers[0]], list(raw.columns)])
+    elif raw.columns.names[0] != "Ticker" and "Ticker" in (raw.columns.names or []):
+        raw = raw.swaplevel(0, 1, axis=1)
+    cols = {}
+    for t in tickers:
+        try:
+            s = raw[t][field].dropna()
+            s.index = pd.to_datetime(s.index).tz_localize(None)
+            s = s[~s.index.duplicated(keep="last")]
+            if len(s):
+                cols[t] = s
+        except Exception:
+            continue
+    if "SPY" not in cols:
+        raise RuntimeError("SPY fehlt")
+    return pd.DataFrame(cols).sort_index()
+
+
+def write_etf_history() -> Path:
+    """About one year of SPDR sector ETF and SPY closes for the Sektor-Rad."""
+    today = datetime.now(timezone.utc).date()
+    start = (today - timedelta(days=420)).isoformat()
+    end = (today + timedelta(days=1)).isoformat()
+    frame = _yf_frame(ETF_TICKERS, start, end, "Close")
+    dates = [d.strftime("%Y-%m-%d") for d in frame.index]
+    close = {}
+    for t in ETF_TICKERS:
+        if t not in frame.columns:
+            continue
+        close[t] = [None if pd.isna(v) else round(float(v), 4) for v in frame[t].tolist()]
+    payload = {
+        "updated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "names": {t: ETF_NAMES[t] for t in close if t != "SPY"},
+        "dates": dates,
+        "close": close,
+    }
+    out = HIST / "etf.json"
+    out.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    print(f"etf.json {len(dates)} Tage, {len(close)} Reihen, bis {dates[-1] if dates else '-'}", flush=True)
+    return out
+
+
+def _month_table(adj: pd.DataFrame, year: int) -> dict:
+    """Monthly and quarterly relative returns. Years before `year` only. No forecast."""
+    month_end = adj.resample("ME").last()
+    rets = month_end.pct_change() * 100.0
+    out = {}
+    for t in [x for x in ETF_TICKERS if x != "SPY" and x in adj.columns]:
+        first = adj[t].first_valid_index()
+        if first is None or "SPY" not in rets.columns:
+            continue
+        sector = rets[t][rets.index > pd.Timestamp(first) + pd.offsets.MonthEnd(1)]
+        sector = sector[sector.index.year < year].dropna()
+        spy = rets["SPY"].reindex(sector.index)
+        both = pd.DataFrame({"s": sector, "spy": spy}).dropna()
+        months = {}
+        for m in range(1, 13):
+            block = both[both.index.month == m]
+            if block.empty:
+                continue
+            beat = int((block["s"] > block["spy"]).sum())
+            months[str(m)] = {
+                "n": int(len(block)),
+                "beat": beat,
+                "excess": round(float((block["s"] - block["spy"]).mean()), 2),
+            }
+        quarters = {}
+        for q in range(1, 5):
+            excesses = []
+            beats = 0
+            years = sorted(set(both.index.year))
+            for y in years:
+                part = both[(both.index.year == y) & (both.index.quarter == q)]
+                if len(part) < 3:
+                    continue
+                sret = float((1 + part["s"] / 100.0).prod() - 1)
+                pret = float((1 + part["spy"] / 100.0).prod() - 1)
+                excesses.append((sret - pret) * 100.0)
+                if sret > pret:
+                    beats += 1
+            if excesses:
+                quarters[str(q)] = {
+                    "n": len(excesses),
+                    "beat": beats,
+                    "excess": round(float(sum(excesses) / len(excesses)), 2),
+                }
+        out[t] = {"name": ETF_NAMES[t], "months": months, "quarters": quarters}
+    return out
+
+
+def maybe_write_seasonality() -> Path | None:
+    """Rewrite data/seasonality.json at most once per calendar month."""
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    if SEASON_PATH.exists():
+        try:
+            old = json.loads(SEASON_PATH.read_text(encoding="utf-8"))
+            if old.get("computed_month") == month and old.get("sectors"):
+                print(f"Saison {month} schon vorhanden", flush=True)
+                return SEASON_PATH
+        except Exception:
+            pass
+    today = datetime.now(timezone.utc).date()
+    end = (today + timedelta(days=1)).isoformat()
+    adj = _yf_frame(ETF_TICKERS, "1998-12-01", end, "Adj Close")
+    year = today.year
+    payload = {
+        "updated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "computed_month": month,
+        "through_year": year - 1,
+        "method": "Adj Close, Monatsrendite zum Monatsende, nur volle Monate, Jahre vor dem laufenden Jahr. Relativ = Sektor minus S&P 500 (SPY). Quartal = drei Monate verkettet.",
+        "note": "Historischer Durchschnitt – keine Prognose.",
+        "sectors": _month_table(adj, year),
+    }
+    SEASON_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SEASON_PATH.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    print(f"seasonality.json {month} Sektoren {len(payload['sectors'])}", flush=True)
+    return SEASON_PATH
+
+
 def main() -> int:
     book = load_universe()
     display = {rec["t"]: rec for rec in book.values()}
@@ -330,6 +467,14 @@ def main() -> int:
         write_returns_from_shards()
     except Exception as e:  # noqa: BLE001
         print(f"warn: returns.json nicht geschrieben ({e!r})", file=sys.stderr)
+    try:
+        write_etf_history()
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: ETF-Historie nicht geschrieben ({e!r})", file=sys.stderr)
+    try:
+        maybe_write_seasonality()
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: Saison-Statistik nicht geschrieben ({e!r})", file=sys.stderr)
     return 0
 
 
