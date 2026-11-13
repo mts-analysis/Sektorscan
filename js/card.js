@@ -66,6 +66,7 @@
     else if (spec.kind === "compare") drawCompare(ctx, spec);
     else if (spec.kind === "week") drawWeek(ctx, spec);
     else if (spec.kind === "rad") drawRad(ctx, spec);
+    else if (spec.kind === "saison") drawSaison(ctx, spec);
 
     ctx.fillStyle = "#6e7680";
     ctx.font = "600 28px 'Be Vietnam Pro', sans-serif";
@@ -274,6 +275,43 @@
     ctx.fillStyle = "#9aa3ad";
     ctx.font = "300 26px 'Be Vietnam Pro', sans-serif";
     ctx.fillText(fit(ctx, spec.foot || "", 940), 72, 1760);
+  }
+
+  function drawSaison(ctx, spec) {
+    ctx.fillStyle = "#e9c46a";
+    ctx.font = "700 26px 'Be Vietnam Pro', sans-serif";
+    ctx.fillText("Historischer Durchschnitt – keine Prognose", 72, 210);
+    const cols = [430, 560, 690, 820, 950];
+    const heads = ["Aktuell", "Letztes Jahr", "Ø 5 J.", "Ø 10 J.", "Ø 20 J."];
+    function block(title, rows, y0) {
+      ctx.fillStyle = "#eceff1";
+      ctx.font = "800 32px 'Be Vietnam Pro', sans-serif";
+      ctx.fillText(title, 72, y0);
+      ctx.fillStyle = "#9aa3ad";
+      ctx.font = "600 18px 'Be Vietnam Pro', sans-serif";
+      heads.forEach((label, i) => ctx.fillText(label, cols[i], y0));
+      rows.slice(0, 11).forEach((row, i) => {
+        const y = y0 + 22 + i * 58;
+        rounded(ctx, 64, y, W - 128, 52, 12);
+        ctx.fillStyle = "#262a30";
+        ctx.fill();
+        ctx.fillStyle = "#eceff1";
+        ctx.font = "800 24px 'Be Vietnam Pro', sans-serif";
+        ctx.fillText(fit(ctx, row.name, 280), 80, y + 38);
+        (row.cells || []).forEach((cell, c) => {
+          ctx.fillStyle = cell.color || "#9aa3ad";
+          ctx.font = "800 22px 'Be Vietnam Pro', sans-serif";
+          ctx.fillText(cell.value || "–", cols[c], y + 28);
+          if (cell.sub) {
+            ctx.fillStyle = "#9aa3ad";
+            ctx.font = "600 16px 'Be Vietnam Pro', sans-serif";
+            ctx.fillText(cell.sub, cols[c], y + 48);
+          }
+        });
+      });
+    }
+    block(spec.monthTitle || "Monat", spec.monthRows || [], 250);
+    block(spec.quarterTitle || "Quartal", spec.quarterRows || [], 250 + 36 + 11 * 58 + 18);
   }
 
   async function saveCard(spec) {

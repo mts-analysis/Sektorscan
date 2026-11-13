@@ -499,7 +499,7 @@
     document.dispatchEvent(new CustomEvent("mts-merk", { detail: { ticker, on } }));
   }, true);
 
-  const PAGES = ["index.html", "rad.html", "heatmap.html", "vergleich.html", "scanner.html", "topflop.html", "earnings.html"];
+  const PAGES = ["index.html", "rad.html", "saison.html", "heatmap.html", "vergleich.html", "scanner.html", "topflop.html", "earnings.html"];
 
   function pageFile() {
     const name = location.pathname.split("/").pop();

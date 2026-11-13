@@ -1120,3 +1120,35 @@ table.season tr.is-now { outline: 1px solid var(--lime); }
 .heat-cell strong, .heat-cell span { display: block; }
 .heat-cell span { font-weight: 600; color: var(--sub); }
 input[type="range"] { width: min(100%, 280px); accent-color: var(--lime); }
+.legal-banner {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 24%, var(--card));
+  color: var(--fg);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+table.sais { border-collapse: collapse; width: 100%; min-width: 36rem; font-size: 0.72rem; }
+table.sais th, table.sais td { padding: 0.45rem 0.35rem; text-align: right; white-space: nowrap; }
+table.sais tbody th { text-align: left; font-weight: 800; }
+table.sais tbody th span { display: block; font-weight: 600; color: var(--muted); font-size: 0.66rem; }
+table.sais thead th { color: var(--sub); font-weight: 700; }
+table.sais tbody tr { cursor: pointer; }
+.sais-cell strong, .sais-cell span { display: block; }
+.sais-cell span { font-size: 0.64rem; color: var(--sub); font-weight: 700; }
+.sais-block { margin: 0 0 16px; }
+.sais-block h2 { margin: 0 0 6px; font-size: 1rem; }
+.sais-cards { display: flex; flex-direction: column; gap: 8px; }
+.sais-card { background: var(--card); border-radius: 12px; padding: 10px 12px; cursor: pointer; }
+.sais-card h3 { margin: 0 0 8px; font-size: 0.95rem; }
+.sais-card h3 span { color: var(--muted); font-weight: 700; font-size: 0.75rem; }
+.sais-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.sais-metric { border-radius: 8px; padding: 6px 8px; }
+.sais-metric span, .sais-metric small { display: block; color: var(--sub); font-size: 0.66rem; font-weight: 700; }
+.sais-metric strong { font-size: 0.95rem; }
+.sais-wide { display: none; }
+@media (min-width: 760px) {
+  .sais-cards { display: none; }
+  .sais-wide { display: block; }
+}

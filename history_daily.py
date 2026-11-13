@@ -356,27 +356,28 @@ def _month_table(adj: pd.DataFrame, year: int) -> dict:
                 "n": int(len(block)),
                 "beat": beat,
                 "excess": round(float((block["s"] - block["spy"]).mean()), 2),
+                "years": {str(ts.year): round(float(v["s"] - v["spy"]), 2) for ts, v in block.iterrows()},
             }
         quarters = {}
-        for q in range(1, 5):
-            excesses = []
-            beats = 0
-            years = sorted(set(both.index.year))
-            for y in years:
+        q_years = {str(q): {} for q in range(1, 5)}
+        for y in sorted(set(both.index.year)):
+            for q in range(1, 5):
                 part = both[(both.index.year == y) & (both.index.quarter == q)]
                 if len(part) < 3:
                     continue
                 sret = float((1 + part["s"] / 100.0).prod() - 1)
                 pret = float((1 + part["spy"] / 100.0).prod() - 1)
-                excesses.append((sret - pret) * 100.0)
-                if sret > pret:
-                    beats += 1
-            if excesses:
-                quarters[str(q)] = {
-                    "n": len(excesses),
-                    "beat": beats,
-                    "excess": round(float(sum(excesses) / len(excesses)), 2),
-                }
+                q_years[str(q)][str(y)] = round((sret - pret) * 100.0, 2)
+        for q in range(1, 5):
+            vals = list(q_years[str(q)].values())
+            if not vals:
+                continue
+            quarters[str(q)] = {
+                "n": len(vals),
+                "beat": sum(1 for v in vals if v > 0),
+                "excess": round(sum(vals) / len(vals), 2),
+                "years": q_years[str(q)],
+            }
         out[t] = {"name": ETF_NAMES[t], "months": months, "quarters": quarters}
     return out
 
@@ -387,7 +388,7 @@ def maybe_write_seasonality() -> Path | None:
     if SEASON_PATH.exists():
         try:
             old = json.loads(SEASON_PATH.read_text(encoding="utf-8"))
-            if old.get("computed_month") == month and old.get("sectors"):
+            if old.get("schema") == 2 and old.get("computed_month") == month and old.get("sectors"):
                 print(f"Saison {month} schon vorhanden", flush=True)
                 return SEASON_PATH
         except Exception:
@@ -398,6 +399,7 @@ def maybe_write_seasonality() -> Path | None:
     year = today.year
     payload = {
         "updated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "schema": 2,
         "computed_month": month,
         "through_year": year - 1,
         "method": "Adj Close, Monatsrendite zum Monatsende, nur volle Monate, Jahre vor dem laufenden Jahr. Relativ = Sektor minus S&P 500 (SPY). Quartal = drei Monate verkettet.",
