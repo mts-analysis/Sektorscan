@@ -75,7 +75,7 @@
         session: `Sitzung ${session || "–"}`,
         market: `${ex} · ${state}`,
       });
-      return `<article class="card compare-card">
+      return `<a class="card compare-card" href="index.html?ix=${encodeURIComponent(market.id)}">
         <div class="tf-head">
           <p class="kicker">${escapeHtml(market.name)}</p>
           <span class="mkt ${cls}">${escapeHtml(ex)} · ${escapeHtml(state)}</span>
@@ -86,7 +86,7 @@
         <p class="note">Stärkster Sektor: ${escapeHtml(strong ? `${strong.name} ${dePct(strong.pct)}` : "–")}</p>
         <p class="note">Schwächster Sektor: ${escapeHtml(weak ? `${weak.name} ${dePct(weak.pct)}` : "–")}</p>
         <p class="note">${wide.up} im Plus · ${wide.down} im Minus · ${wide.n} Titel</p>
-      </article>`;
+      </a>`;
     }).join("");
     $("#app").innerHTML = `
       <div class="tool-row">${tfSwitcher()}${exportButton()}</div>
@@ -129,5 +129,12 @@
   }
   document.addEventListener("mts-tf", () => { if (sectors) render(); });
   document.addEventListener("mts-theme", () => { if (sectors) render(); });
+  document.addEventListener("mts-fresh", (e) => {
+    const path = e.detail && e.detail.path || "";
+    if (path.endsWith("sectors.json")) sectors = e.detail.data;
+    if (path.endsWith("stocks.json")) stocks = e.detail.data;
+    if (path.endsWith("returns.json")) pack = e.detail.data;
+    if (sectors && stocks) render();
+  });
   start();
 })();

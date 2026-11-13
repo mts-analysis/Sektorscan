@@ -122,6 +122,16 @@
   });
 
   document.addEventListener("mts-theme", () => { if (stocks) render(); });
+  document.addEventListener("mts-fresh", (e) => {
+    if (e.detail && String(e.detail.path).endsWith("stocks.json")) {
+      stocks = e.detail.data;
+      render();
+    }
+    if (e.detail && String(e.detail.path).endsWith("returns.json")) {
+      pack = e.detail.data;
+      render();
+    }
+  });
 
   async function start() {
     try {

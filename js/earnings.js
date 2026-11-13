@@ -122,5 +122,12 @@
       $("#app").innerHTML = `<p class="error">Die Termine konnten nicht geladen werden.</p>`;
     }
   }
+  document.addEventListener("mts-fresh", (e) => {
+    if (!e.detail || !state) return;
+    if (String(e.detail.path).endsWith("stocks.json")) {
+      state.rows = new Map((e.detail.data.rows || []).map((row) => [row.t, row]));
+      if (state.items) render();
+    }
+  });
   start();
 })();

@@ -992,7 +992,7 @@ a.chip { text-decoration: none; display: inline-block; }
   color: var(--gold);
   border: 1px solid color-mix(in srgb, var(--gold) 50%, var(--line));
 }
-a.tile { display: block; color: inherit; text-decoration: none; }
+a.tile, a.card { display: block; color: inherit; text-decoration: none; }
 .heat-sec h2 a { color: inherit; text-decoration: none; }
 .sector-link { color: var(--sub); font-weight: 700; text-decoration: underline; }
 .theme-toggle {
@@ -1054,8 +1054,8 @@ a.tile { display: block; color: inherit; text-decoration: none; }
 .wh-line .wh-name { grid-area: name; }
 .wh-line .wh-sec { grid-area: sec; color: var(--sub); font-size: 0.72rem; font-weight: 600; }
 .wh-line .wh-count { grid-area: count; font-weight: 800; font-size: 0.72rem; text-align: right; }
-.page.swipe-next { animation: mts-in-next 0.28s ease; }
-.page.swipe-prev { animation: mts-in-prev 0.28s ease; }
+.page.swipe-next { animation: mts-in-next 0.1s ease; }
+.page.swipe-prev { animation: mts-in-prev 0.1s ease; }
 @keyframes mts-in-next {
   from { transform: translateX(28px); opacity: 0.5; }
   to { transform: none; opacity: 1; }

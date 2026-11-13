@@ -314,6 +314,8 @@ EXTRA_INDICES = [
     ("KS200", "KOSPI 200", "^KS200", ZoneInfo("Asia/Seoul")),
     ("N225", "Nikkei 225", "^N225", ZoneInfo("Asia/Tokyo")),
     ("UKX", "FTSE 100", "^FTSE", ZoneInfo("Europe/London")),
+    ("NDX", "Nasdaq-100", "^NDX", ZoneInfo("America/New_York")),
+    ("DJI", "Dow Jones 30", "^DJI", ZoneInfo("America/New_York")),
 ]
 
 

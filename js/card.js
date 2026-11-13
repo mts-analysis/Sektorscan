@@ -156,27 +156,33 @@
   }
 
   function drawCompare(ctx, spec) {
-    (spec.cards || []).slice(0, 5).forEach((card, i) => {
-      const y = 240 + i * 300;
-      rounded(ctx, 72, y, W - 144, 280, 24);
+    const cards = (spec.cards || []).slice(0, 7);
+    const n = Math.max(cards.length, 1);
+    const top = 210;
+    const bottom = 1810;
+    const gap = 10;
+    const height = Math.floor((bottom - top - gap * (n - 1)) / n);
+    cards.forEach((card, i) => {
+      const y = top + i * (height + gap);
+      rounded(ctx, 72, y, W - 144, height, 18);
       ctx.fillStyle = "#262a30";
       ctx.fill();
       ctx.fillStyle = "#9aa3ad";
-      ctx.font = "600 28px 'Be Vietnam Pro', sans-serif";
-      ctx.fillText(fit(ctx, `${card.name} · ${card.market || ""}`, 880), 100, y + 48);
+      ctx.font = "600 22px 'Be Vietnam Pro', sans-serif";
+      ctx.fillText(fit(ctx, `${card.name} · ${card.market || ""}`, 900), 96, y + 32);
       ctx.fillStyle = "#eceff1";
-      ctx.font = "900 64px 'Barlow Condensed', sans-serif";
-      ctx.fillText(fit(ctx, card.level || "–", 520), 100, y + 120);
+      ctx.font = "900 42px 'Barlow Condensed', sans-serif";
+      ctx.fillText(fit(ctx, card.level || "–", 520), 96, y + 78);
       ctx.fillStyle = card.color || "#eceff1";
-      ctx.font = "900 48px 'Barlow Condensed', sans-serif";
-      ctx.fillText(card.pct || "–", 680, y + 120);
+      ctx.font = "900 34px 'Barlow Condensed', sans-serif";
+      ctx.fillText(card.pct || "–", 700, y + 78);
       ctx.fillStyle = "#eceff1";
-      ctx.font = "600 30px 'Be Vietnam Pro', sans-serif";
-      ctx.fillText(fit(ctx, card.baro || "", 880), 100, y + 175);
+      ctx.font = "600 22px 'Be Vietnam Pro', sans-serif";
+      ctx.fillText(fit(ctx, card.baro || "", 900), 96, y + 112);
       ctx.fillStyle = "#9aa3ad";
-      ctx.font = "300 28px 'Be Vietnam Pro', sans-serif";
-      ctx.fillText(fit(ctx, card.detail || "", 880), 100, y + 220);
-      ctx.fillText(fit(ctx, card.session || "", 880), 100, y + 256);
+      ctx.font = "300 20px 'Be Vietnam Pro', sans-serif";
+      ctx.fillText(fit(ctx, card.detail || "", 900), 96, y + 142);
+      if (height > 160) ctx.fillText(fit(ctx, card.session || "", 900), 96, y + 168);
     });
   }
 

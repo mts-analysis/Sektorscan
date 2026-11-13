@@ -1,0 +1,102 @@
+Symbol,Security,Yahoo,SectorDE,YahooSector
+ADBE,Adobe Inc.,ADBE,Technologie,Technology
+AMD,Advanced Micro Devices,AMD,Technologie,Technology
+ABNB,Airbnb,ABNB,Zyklischer Konsum,Consumer Discretionary
+ALNY,Alnylam Pharmaceuticals,ALNY,Gesundheit,Health Care
+GOOGL,Alphabet Inc. (Class A),GOOGL,Technologie,Technology
+GOOG,Alphabet Inc. (Class C),GOOG,Technologie,Technology
+AMZN,Amazon,AMZN,Zyklischer Konsum,Consumer Discretionary
+AEP,American Electric Power,AEP,Versorger,Utilities
+AMGN,Amgen,AMGN,Gesundheit,Health Care
+ADI,Analog Devices,ADI,Technologie,Technology
+AAPL,Apple Inc.,AAPL,Technologie,Technology
+AMAT,Applied Materials,AMAT,Technologie,Technology
+APP,AppLovin,APP,Technologie,Technology
+ARM,Arm Holdings,ARM,Technologie,Technology
+ASML,ASML Holding,ASML,Technologie,Technology
+ALAB,Astera Labs,ALAB,Technologie,Technology
+ADSK,Autodesk,ADSK,Technologie,Technology
+ADP,Automatic Data Processing,ADP,Industrie,Industrials
+AXON,Axon Enterprise,AXON,Industrie,Industrials
+BKR,Baker Hughes,BKR,Energie,Energy
+BKNG,Booking Holdings,BKNG,Zyklischer Konsum,Consumer Discretionary
+AVGO,Broadcom,AVGO,Technologie,Technology
+CDNS,Cadence Design Systems,CDNS,Technologie,Technology
+CTAS,Cintas,CTAS,Industrie,Industrials
+CSCO,Cisco,CSCO,Kommunikation,Telecommunications
+CCEP,Coca-Cola Europacific Partners,CCEP,Basiskonsum,Consumer Staples
+CMCSA,Comcast,CMCSA,Kommunikation,Telecommunications
+CEG,Constellation Energy,CEG,Versorger,Utilities
+CPRT,Copart,CPRT,Zyklischer Konsum,Consumer Discretionary
+CRWV,CoreWeave,CRWV,Technologie,Technology
+COST,Costco,COST,Zyklischer Konsum,Consumer Discretionary
+CRWD,CrowdStrike,CRWD,Technologie,Technology
+CSX,CSX Corporation,CSX,Industrie,Industrials
+DDOG,Datadog,DDOG,Technologie,Technology
+DXCM,DexCom,DXCM,Gesundheit,Health Care
+FANG,Diamondback Energy,FANG,Energie,Energy
+DASH,DoorDash,DASH,Technologie,Technology
+EXC,Exelon,EXC,Versorger,Utilities
+FAST,Fastenal,FAST,Industrie,Industrials
+FER,Ferrovial,FER,Industrie,Industrials
+FTNT,Fortinet,FTNT,Technologie,Technology
+GEHC,GE HealthCare,GEHC,Gesundheit,Health Care
+GILD,Gilead Sciences,GILD,Gesundheit,Health Care
+HONA,Honeywell Aerospace,HONA,Industrie,Industrials
+HON,Honeywell Technologies,HON,Industrie,Industrials
+IDXX,Idexx Laboratories,IDXX,Gesundheit,Health Care
+INTC,Intel,INTC,Technologie,Technology
+INTU,Intuit,INTU,Technologie,Technology
+ISRG,Intuitive Surgical,ISRG,Gesundheit,Health Care
+KDP,Keurig Dr Pepper,KDP,Basiskonsum,Consumer Staples
+KLAC,KLA Corporation,KLAC,Technologie,Technology
+LRCX,Lam Research,LRCX,Technologie,Technology
+LIN,Linde plc,LIN,Grundstoffe,Basic Materials
+LITE,Lumentum,LITE,Technologie,Technology
+MAR,Marriott International,MAR,Zyklischer Konsum,Consumer Discretionary
+MRVL,Marvell Technology,MRVL,Technologie,Technology
+MELI,Mercado Libre,MELI,Zyklischer Konsum,Consumer Discretionary
+META,Meta Platforms,META,Technologie,Technology
+MCHP,Microchip Technology,MCHP,Technologie,Technology
+MU,Micron Technology,MU,Technologie,Technology
+MSFT,Microsoft,MSFT,Technologie,Technology
+MSTR,MicroStrategy,MSTR,Technologie,Technology
+MRNA,Moderna,MRNA,Gesundheit,Health Care
+MDLZ,Mondelez International,MDLZ,Basiskonsum,Consumer Staples
+MPWR,Monolithic Power Systems,MPWR,Technologie,Technology
+MNST,Monster Beverage,MNST,Basiskonsum,Consumer Staples
+NBIS,Nebius Group,NBIS,Technologie,Technology
+NFLX,"Netflix, Inc.",NFLX,Zyklischer Konsum,Consumer Discretionary
+NVDA,Nvidia,NVDA,Technologie,Technology
+NXPI,NXP Semiconductors,NXPI,Technologie,Technology
+ORLY,O'Reilly Automotive,ORLY,Zyklischer Konsum,Consumer Discretionary
+ODFL,Old Dominion Freight Line,ODFL,Industrie,Industrials
+PCAR,Paccar,PCAR,Zyklischer Konsum,Consumer Discretionary
+PLTR,Palantir Technologies,PLTR,Technologie,Technology
+PANW,Palo Alto Networks,PANW,Technologie,Technology
+PAYX,Paychex,PAYX,Industrie,Industrials
+PYPL,PayPal,PYPL,Industrie,Industrials
+PDD,PDD Holdings,PDD,Technologie,Technology
+PEP,PepsiCo,PEP,Basiskonsum,Consumer Staples
+QCOM,Qualcomm,QCOM,Technologie,Technology
+REGN,Regeneron Pharmaceuticals,REGN,Gesundheit,Health Care
+RKLB,Rocket Lab,RKLB,Industrie,Industrials
+ROP,Roper Technologies,ROP,Technologie,Technology
+ROST,Ross Stores,ROST,Zyklischer Konsum,Consumer Discretionary
+SNDK,Sandisk,SNDK,Technologie,Technology
+STX,Seagate Technology,STX,Technologie,Technology
+SHOP,Shopify,SHOP,Technologie,Technology
+SPCX,SpaceX,SPCX,Kommunikation,Telecommunications
+SBUX,Starbucks,SBUX,Zyklischer Konsum,Consumer Discretionary
+SNPS,Synopsys,SNPS,Technologie,Technology
+TMUS,T-Mobile US,TMUS,Kommunikation,Telecommunications
+TTWO,Take-Two Interactive,TTWO,Zyklischer Konsum,Consumer Discretionary
+TER,Teradyne,TER,Technologie,Technology
+TSLA,"Tesla, Inc.",TSLA,Zyklischer Konsum,Consumer Discretionary
+TXN,Texas Instruments,TXN,Technologie,Technology
+TRI,Thomson Reuters,TRI,Technologie,Technology
+VRTX,Vertex Pharmaceuticals,VRTX,Gesundheit,Health Care
+WMT,Walmart,WMT,Zyklischer Konsum,Consumer Discretionary
+WDC,Western Digital,WDC,Technologie,Technology
+WDAY,"Workday, Inc.",WDAY,Technologie,Technology
+XEL,Xcel Energy,XEL,Versorger,Utilities

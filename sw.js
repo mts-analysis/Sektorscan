@@ -1,5 +1,17 @@
-/* Shell may be cached. Quote and history JSON are never served from cache. */
-const SHELL = "mts-shell-1";
+/* HTML, CSS and JS are cache-first. Quote and history JSON stay network-only. */
+const SHELL = "mts-shell-2";
+
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((key) => key !== SHELL && key !== "mts-last-data").map((key) => caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
@@ -11,17 +23,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   event.respondWith((async () => {
-    try {
-      const res = await fetch(req);
-      if (res && res.ok) {
-        const cache = await caches.open(SHELL);
-        cache.put(req, res.clone());
-      }
+    const cache = await caches.open(SHELL);
+    const cached = await cache.match(req);
+    const update = fetch(req).then((res) => {
+      if (res && res.ok) cache.put(req, res.clone());
       return res;
-    } catch (err) {
-      const cached = await caches.match(req);
-      if (cached) return cached;
-      throw err;
+    }).catch(() => null);
+    if (cached) {
+      event.waitUntil(update);
+      return cached;
     }
+    const res = await update;
+    if (res) return res;
+    throw new Error("offline");
   })());
 });

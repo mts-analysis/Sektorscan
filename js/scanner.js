@@ -565,4 +565,10 @@
   }, window.MTS.REFRESH_MS);
   document.addEventListener("mts-tf", () => { if (state.data) refresh(); });
   document.addEventListener("mts-theme", () => { if (state.data) refresh(); });
+  document.addEventListener("mts-fresh", (e) => {
+    if (!e.detail || !String(e.detail.path).endsWith("stocks.json")) return;
+    state.data = e.detail.data;
+    state.searchIndex = window.MTS.buildSearchIndex(state.data.rows || []);
+    refresh();
+  });
 })();

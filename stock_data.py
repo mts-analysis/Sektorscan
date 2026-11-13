@@ -353,6 +353,8 @@ MARKETS = [
     {"id": "KS200", "name": "KOSPI 200", "tz": "Asia/Seoul", "ccy": "KRW", "kind": "listed", "file": "kospi200_constituents.csv", "index": "^KS200"},
     {"id": "N225", "name": "Nikkei 225", "tz": "Asia/Tokyo", "ccy": "JPY", "kind": "listed", "file": "nikkei225_constituents.csv", "index": "^N225"},
     {"id": "UKX", "name": "FTSE 100", "tz": "Europe/London", "ccy": "GBP", "kind": "listed", "file": "ftse100_constituents.csv", "index": "^FTSE"},
+    {"id": "NDX", "name": "Nasdaq-100", "tz": "America/New_York", "ccy": "USD", "kind": "listed", "file": "nasdaq100_constituents.csv", "index": "^NDX"},
+    {"id": "DJI", "name": "Dow Jones 30", "tz": "America/New_York", "ccy": "USD", "kind": "listed", "file": "dow30_constituents.csv", "index": "^DJI"},
 ]
 SECTOR_ORDER = [
     "Technologie", "Finanzen", "Gesundheit", "Zyklischer Konsum", "Basiskonsum",

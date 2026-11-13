@@ -135,6 +135,17 @@
   setInterval(() => { loadJSON("data/stocks.json").then((d) => { latest = d; render(d); }).catch(() => {}); }, window.MTS.REFRESH_MS);
   document.addEventListener("mts-tf", () => { if (latest) render(latest); });
   document.addEventListener("mts-theme", () => { if (latest) render(latest); });
+  document.addEventListener("mts-fresh", (e) => {
+    if (!e.detail) return;
+    if (String(e.detail.path).endsWith("stocks.json")) {
+      latest = e.detail.data;
+      render(latest);
+    }
+    if (String(e.detail.path).endsWith("returns.json")) {
+      pack = e.detail.data;
+      if (latest) render(latest);
+    }
+  });
   document.addEventListener("click", async (e) => {
     if (!e.target.closest("[data-export]") || !window.__mtsTop) return;
     const btn = e.target.closest("[data-export]");

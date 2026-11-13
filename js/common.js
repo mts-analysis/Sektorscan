@@ -180,9 +180,38 @@
       return `<button type="button" class="star${on ? " is-on" : ""}" data-star="${C.escapeHtml(ticker)}" aria-pressed="${on ? "true" : "false"}" aria-label="${label}">★</button>`;
     },
     async loadJSON(url) {
-      const res = await fetch(`${url}?t=${Date.now()}`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`${url} (${res.status})`);
-      return res.json();
+      const path = String(url).split("?")[0];
+      const abs = new URL(path, location.href).href;
+      if (!C._jsonSeen) C._jsonSeen = new Set();
+      const first = !C._jsonSeen.has(path);
+      C._jsonSeen.add(path);
+      const cache = "caches" in window ? await caches.open("mts-last-data").catch(() => null) : null;
+      let cached = null;
+      if (cache) {
+        const hit = await cache.match(abs);
+        if (hit) {
+          try { cached = await hit.json(); } catch { cached = null; }
+        }
+      }
+      const pull = async () => {
+        const res = await fetch(`${path}?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`${path} (${res.status})`);
+        const data = await res.json();
+        if (cache) {
+          cache.put(abs, new Response(JSON.stringify(data), {
+            headers: { "Content-Type": "application/json" },
+          })).catch(() => {});
+        }
+        return data;
+      };
+      const quote = /(?:^|\/)(sectors|stocks|returns|earnings)\.json$/.test(path);
+      if (first && cached) {
+        pull().then((data) => {
+          if (quote) document.dispatchEvent(new CustomEvent("mts-fresh", { detail: { path, data } }));
+        }).catch(() => {});
+        return cached;
+      }
+      return pull();
     },
     params() {
       return new URLSearchParams(location.search);
@@ -193,6 +222,8 @@
       { id: "KS200", name: "KOSPI 200" },
       { id: "N225", name: "Nikkei 225" },
       { id: "UKX", name: "FTSE 100" },
+      { id: "NDX", name: "Nasdaq-100" },
+      { id: "DJI", name: "Dow Jones 30" },
     ],
     indexName(id) {
       const hit = C.INDICES.find((x) => x.id === id);
@@ -265,7 +296,7 @@
         minutes: hour * 60 + Number(parts.minute),
       };
     },
-    INDEX_EXCHANGE: { SPX: "NYSE", DAX: "Xetra", KS200: "KRX", N225: "TSE", UKX: "LSE" },
+    INDEX_EXCHANGE: { SPX: "NYSE", DAX: "Xetra", KS200: "KRX", N225: "TSE", UKX: "LSE", NDX: "NYSE", DJI: "NYSE" },
     SECTORS: [
       "Technologie", "Finanzen", "Gesundheit", "Zyklischer Konsum", "Basiskonsum",
       "Industrie", "Energie", "Grundstoffe", "Versorger", "Immobilien", "Kommunikation",
@@ -567,7 +598,7 @@
     const dx = t.clientX - swipeStart.x;
     const dy = t.clientY - swipeStart.y;
     swipeStart = null;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
     const dir = dx < 0 ? 1 : -1;
     const next = PAGES[pageIndex + dir];
     if (!next) return;
@@ -586,6 +617,24 @@
     e.preventDefault();
     e.stopPropagation();
   }, true);
+
+  if (pageIndex >= 0) {
+    const neighbors = [PAGES[pageIndex - 1], PAGES[pageIndex + 1]].filter(Boolean);
+    neighbors.forEach((href) => {
+      const link = document.createElement("link");
+      link.rel = "prefetch";
+      link.href = href;
+      document.head.appendChild(link);
+    });
+    if (neighbors.length) {
+      const spec = document.createElement("script");
+      spec.type = "speculationrules";
+      spec.textContent = JSON.stringify({
+        prefetch: [{ source: "list", urls: neighbors, eagerness: "immediate" }],
+      });
+      document.head.appendChild(spec);
+    }
+  }
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});

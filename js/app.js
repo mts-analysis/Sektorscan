@@ -314,10 +314,7 @@
   }
 
   async function load() {
-    const url = `${DATA_URL}?t=${Date.now()}`;
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Daten nicht erreichbar (${res.status})`);
-    const data = await res.json();
+    const data = await window.MTS.loadJSON(DATA_URL);
     if (!data || !data.index || !Array.isArray(data.sectors)) {
       throw new Error("Datenformat unerwartet");
     }
@@ -340,6 +337,12 @@
   setInterval(tick, REFRESH_MS);
   document.addEventListener("mts-tf", () => { if (latest) render(latest); });
   document.addEventListener("mts-theme", () => { if (latest) render(latest); });
+  document.addEventListener("mts-fresh", (e) => {
+    if (e.detail && String(e.detail.path).endsWith("sectors.json")) {
+      latest = e.detail.data;
+      render(latest);
+    }
+  });
   document.addEventListener("click", async (e) => {
     if (!e.target.closest("[data-export]") || !window.__mtsSectors) return;
     const btn = e.target.closest("[data-export]");
