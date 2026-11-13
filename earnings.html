@@ -2,12 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
+  <script>try{if(localStorage.getItem("mts-theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#15171A">
   <meta name="description" content="MTS Sektor-Scanner: Earnings-Kalender. Keine Anlageberatung.">
   <title>MTS Termine</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/logo_T_white.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-title" content="MTS Scanner">
@@ -16,7 +18,8 @@
 <body>
   <div class="page">
     <header class="app-header">
-      <img class="logo" src="assets/logo_T_white.png" alt="MTS" width="148" height="48">
+      <img class="logo logo-dark" src="assets/logo_T_white.png" alt="MTS" width="148" height="48">
+      <img class="logo logo-light" src="assets/logo_mts_light.png" alt="" width="148" height="48">
       <div class="header-text">
         <h1>Termine</h1>
         <p class="handle">MTS · @markt.trends.sektoren</p>

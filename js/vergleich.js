@@ -69,7 +69,7 @@
         name: market.name,
         level: market.price == null ? "–" : deNum(market.price),
         pct: pct == null ? "–" : dePct(pct),
-        color: pct == null ? "#9aa3ad" : pctColor(pct),
+        color: pct == null ? "#9aa3ad" : window.MTS.cardColor(pct),
         baro: baro ? `Barometer ${baro.score}/100 · ${baro.zone_name}` : "Barometer nicht verfügbar",
         detail: `Stark ${strong ? strong.name : "–"} · Schwach ${weak ? weak.name : "–"} · ${wide.up} / ${wide.down} von ${wide.n}`,
         session: `Sitzung ${session || "–"}`,
@@ -128,5 +128,6 @@
     }
   }
   document.addEventListener("mts-tf", () => { if (sectors) render(); });
+  document.addEventListener("mts-theme", () => { if (sectors) render(); });
   start();
 })();

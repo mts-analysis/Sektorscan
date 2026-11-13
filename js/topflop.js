@@ -7,7 +7,7 @@
     return m ? `${m[3]}.${m[2]}.${m[1]}` : (iso || "");
   }
 
-  function bars(title, entries, upSide) {
+  function bars(title, entries, upSide, ix) {
     if (!entries || !entries.length) return `<article class="card"><p class="kicker">${escapeHtml(title)}</p><p class="empty">Keine Daten.</p></article>`;
     const maxAbs = Math.max(...entries.map((e) => Math.abs(e.c))) || 1;
     const rows = entries.map((e, i) => {
@@ -17,7 +17,7 @@
         ${window.MTS.starButton(e.t)}
         <div class="bar-id">
           <span class="mono">${escapeHtml(e.t)}</span>
-          <span class="muted">${escapeHtml(e.n)}${e.p == null ? "" : " · " + window.MTS.money(e.p, e.ccy)}</span>
+          <span class="muted">${escapeHtml(e.n)}${e.s ? ` · <a class="sector-link" href="sektor.html?ix=${encodeURIComponent(ix)}&s=${encodeURIComponent(e.s)}">${escapeHtml(e.s)}</a>` : ""}${e.p == null ? "" : " · " + window.MTS.money(e.p, e.ccy)}</span>
         </div>
         <span class="bar-val" style="color:${col}">${dePct(e.c)}</span>
         <div class="bar-track"><span class="bar-fill" style="width:${w}%;background:${col}"></span></div>
@@ -32,13 +32,13 @@
     </article>`;
   }
 
-  function wcol(title, colorClass, items, sideWord, nDays) {
+  function wcol(title, colorClass, items, sideWord, nDays, ix) {
     const rows = (items || []).map((e) => `
       <div class="wh-row" data-t="${escapeHtml(e.t)}">
         ${window.MTS.starButton(e.t)}
         <span class="wh-chip ${colorClass}">${e.k}/${nDays}</span>
         <span class="mono">${escapeHtml(e.t)}</span>
-        <span class="muted">${escapeHtml(e.n)}  ·  ${escapeHtml(e.s)}</span>
+        <span class="muted">${escapeHtml(e.n)}  ·  <a class="sector-link" href="sektor.html?ix=${encodeURIComponent(ix)}&s=${encodeURIComponent(e.s || "")}">${escapeHtml(e.s || "")}</a></span>
         
       </div>`).join("") || `<p class="empty">Keine Wiederholer mit mindestens 2 Tagen.</p>`;
     return `<div class="wh-col">
@@ -88,29 +88,29 @@
           <p class="muted">Fortlaufender Zähler  ·  ${n} Handelstage</p>
         </div>
         <div class="wh-grid">
-          ${wcol("Im Top", "is-up", (data.wiederholer || {}).top, "Top", n)}
-          ${wcol("Im Flop", "is-down", (data.wiederholer || {}).flop, "Flop", n)}
+          ${wcol("Im Top", "is-up", (data.wiederholer || {}).top, "Top", n, ix)}
+          ${wcol("Im Flop", "is-down", (data.wiederholer || {}).flop, "Flop", n, ix)}
         </div>
       </article>` : `
       <p class="note">Der Wiederholer-Zähler läuft nur für den S&P 500.</p>`;
     $("#app").innerHTML = `
       ${window.MTS.indexSwitch(ix)}
-      <div class="tool-row">${window.MTS.tfSwitcher()}${window.MTS.exportButton()}</div>
+      <div class="tool-row">${window.MTS.tfSwitcher()}${window.MTS.exportButton()}<a class="chip" href="wiederholer.html?ix=${encodeURIComponent(ix)}">Wiederholer-Zählung</a></div>
       <div class="tf-title-row">
         <p class="kicker">${tf === 1 ? "Tages-Top und -Flop" : window.MTS.periodName(tf)}  ·  ${escapeHtml(block.name || window.MTS.indexName(ix))}</p>
         <p class="muted">${tf === 1 ? "Letzte Sitzung" : "Handelstage"} ${escapeHtml(sess)}${escapeHtml(ccy)}</p>
       </div>
       <div class="tf-grid">
-        ${bars("Top 10", top, true)}
-        ${bars("Flop 10", flop, false)}
+        ${bars("Top 10", top, true, ix)}
+        ${bars("Flop 10", flop, false, ix)}
       </div>
       ${wiederholer}
     `;
     window.__mtsTop = {
       title: `Top / Flop · ${block.name || window.MTS.indexName(ix)}`,
       subtitle: `${window.MTS.periodName(tf)} · ${sess}`,
-      top: (top || []).map((r) => ({ t: r.t, n: r.n, pct: window.MTS.dePct(r.c), color: window.MTS.pctColor(r.c) })),
-      flop: (flop || []).map((r) => ({ t: r.t, n: r.n, pct: window.MTS.dePct(r.c), color: window.MTS.pctColor(r.c) })),
+      top: (top || []).map((r) => ({ t: r.t, n: r.n, pct: window.MTS.dePct(r.c), color: window.MTS.cardColor(r.c) })),
+      flop: (flop || []).map((r) => ({ t: r.t, n: r.n, pct: window.MTS.dePct(r.c), color: window.MTS.cardColor(r.c) })),
     };
   }
 
@@ -127,13 +127,14 @@
     }
   }
   document.getElementById("app").addEventListener("click", (e) => {
-    if (e.target.closest("[data-star]")) return;
+    if (e.target.closest("[data-star]") || e.target.closest("a")) return;
     const row = e.target.closest("[data-t]");
     if (row) location.href = `aktie.html?t=${encodeURIComponent(row.dataset.t)}`;
   });
   start();
   setInterval(() => { loadJSON("data/stocks.json").then((d) => { latest = d; render(d); }).catch(() => {}); }, window.MTS.REFRESH_MS);
   document.addEventListener("mts-tf", () => { if (latest) render(latest); });
+  document.addEventListener("mts-theme", () => { if (latest) render(latest); });
   document.addEventListener("click", async (e) => {
     if (!e.target.closest("[data-export]") || !window.__mtsTop) return;
     const btn = e.target.closest("[data-export]");

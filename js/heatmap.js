@@ -71,6 +71,7 @@
         lastTiles.push({
           t: rect.item.t,
           pct: dePct(rect.item.pct),
+          pctNum: rect.item.pct,
           color: pctColor(rect.item.pct),
           x: (rect.x + pad) / 100,
           y: yCursor + ((rect.y + pad) / 100) * frac,
@@ -85,7 +86,7 @@
       }).join("");
       yCursor += frac;
       const head = g.pct == null ? "" : ` <span style="color:${pctColor(g.pct)}">${dePct(g.pct)}</span>`;
-      return `<section class="heat-sec"><h2>${escapeHtml(g.name)}${head}</h2><div class="heat-band" style="height:${height}px">${tiles}</div></section>`;
+      return `<section class="heat-sec"><h2><a href="sektor.html?ix=${encodeURIComponent(ix)}&s=${encodeURIComponent(g.name)}">${escapeHtml(g.name)}</a>${head}</h2><div class="heat-band" style="height:${height}px">${tiles}</div></section>`;
     }).join("");
     $("#app").innerHTML = `
       ${indexSwitch(ix)}
@@ -104,7 +105,7 @@
         kind: "heatmap",
         title: window.__mtsHeat.title,
         subtitle: `${periodName(window.__mtsHeat.tf)} · ${new Date().toLocaleDateString("de-DE")}`,
-        tiles: window.__mtsHeat.tiles,
+        tiles: (window.__mtsHeat.tiles || []).map((tile) => ({ ...tile, color: window.MTS.cardColor(tile.pctNum) })),
         filename: "mts-heatmap.png",
       });
     } catch (err) {
@@ -112,6 +113,8 @@
     }
     btn.disabled = false;
   });
+
+  document.addEventListener("mts-theme", () => { if (stocks) render(); });
 
   async function start() {
     try {

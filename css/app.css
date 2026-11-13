@@ -47,11 +47,29 @@
   --lime: #80f000;
   --line: #464b52;
   --track: #3a3e44;
+  --chip: #30343a;
   --pad: 16px;
+  color-scheme: dark;
   --radius: 14px;
   --tab-h: 64px;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+}
+:root[data-theme="light"] {
+  --bg1: #f3f5f7;
+  --bg2: #e6ebf0;
+  --card: #ffffff;
+  --fg: #1a1c1f;
+  --sub: #3c4650;
+  --muted: #5c6772;
+  --up: #0c8a4b;
+  --down: #d0123a;
+  --gold: #a56b00;
+  --lime: #3f7d00;
+  --line: #d5dbe3;
+  --track: #e4e9ee;
+  --chip: #e8eef3;
+  color-scheme: light;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -93,6 +111,9 @@ body { padding: 0; }
   display: block;
   flex: 0 0 auto;
 }
+.logo-light { display: none; }
+:root[data-theme="light"] .logo-dark { display: none; }
+:root[data-theme="light"] .logo-light { display: block; }
 .header-text { flex: 1 1 auto; min-width: 0; }
 .header-text h1 {
   margin: 0;
@@ -124,7 +145,7 @@ body { padding: 0; }
   flex: 0 0 auto;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: #30343a;
+  background: var(--chip);
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 700;
@@ -523,7 +544,7 @@ a.chip { text-decoration: none; display: inline-block; }
 .chip {
   appearance: none;
   border: 1px solid var(--line);
-  background: #30343a;
+  background: var(--chip);
   color: var(--fg);
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
@@ -614,7 +635,7 @@ a.chip { text-decoration: none; display: inline-block; }
 .grid-table th.is-sort { color: var(--gold); }
 .grid-table th.num, .grid-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .grid-table tbody tr { cursor: pointer; }
-.grid-table tbody tr:nth-child(even) { background: #30343a; }
+.grid-table tbody tr:nth-child(even) { background: var(--chip); }
 .grid-table tbody tr:hover, .grid-table tbody tr:focus {
   background: color-mix(in srgb, var(--lime) 8%, var(--card));
   outline: none;
@@ -685,7 +706,7 @@ a.chip { text-decoration: none; display: inline-block; }
   align-items: center;
   padding: 0.35rem 0.2rem;
 }
-.bar-row.is-alt { background: #30343a; border-radius: 6px; }
+.bar-row.is-alt { background: var(--chip); border-radius: 6px; }
 .bar-id { display: flex; flex-direction: column; min-width: 0; }
 .bar-id .muted { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-val {
@@ -825,7 +846,7 @@ a.chip { text-decoration: none; display: inline-block; }
   border-bottom: 1px solid rgba(70, 75, 82, 0.35);
   cursor: pointer;
 }
-.vrow:nth-child(even) { background: #30343a; }
+.vrow:nth-child(even) { background: var(--chip); }
 .vrow .name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -940,4 +961,106 @@ a.chip { text-decoration: none; display: inline-block; }
   font-weight: 700;
   color: var(--gold);
   border: 1px solid color-mix(in srgb, var(--gold) 50%, var(--line));
+}
+a.tile { display: block; color: inherit; text-decoration: none; }
+.heat-sec h2 a { color: inherit; text-decoration: none; }
+.sector-link { color: var(--sub); font-weight: 700; text-decoration: underline; }
+.theme-toggle {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  color: var(--fg);
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+  font: 700 0.72rem "Be Vietnam Pro", system-ui, sans-serif;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.stale-banner {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 28%, var(--card));
+  color: var(--fg);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.stale-banner[hidden] { display: none; }
+.page.has-dots { padding-bottom: calc(var(--tab-h) + 18px + var(--safe-b)); }
+.swipe-dots {
+  position: fixed;
+  z-index: 21;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--tab-h) + var(--safe-b) + 6px);
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  padding: 5px 8px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  border: 1px solid var(--line);
+}
+.swipe-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--muted);
+  display: block;
+}
+.swipe-dots i.is-on { width: 18px; background: var(--lime); }
+.wh-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "t name count" "sec sec count";
+  gap: 1px 8px;
+  align-items: center;
+  padding: 0.45rem 0.2rem;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--line);
+}
+.wh-line .mono { grid-area: t; font-weight: 800; }
+.wh-line .wh-name { grid-area: name; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.wh-line .wh-sec { grid-area: sec; color: var(--sub); font-size: 0.72rem; font-weight: 600; }
+.wh-line .wh-count { grid-area: count; font-weight: 800; font-size: 0.72rem; text-align: right; }
+.page.swipe-next { animation: mts-in-next 0.28s ease; }
+.page.swipe-prev { animation: mts-in-prev 0.28s ease; }
+@keyframes mts-in-next {
+  from { transform: translateX(28px); opacity: 0.5; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes mts-in-prev {
+  from { transform: translateX(-28px); opacity: 0.5; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page.swipe-next, .page.swipe-prev { animation: none; }
+}
+.week-block { margin: 0 0 14px; }
+.week-row, .sector-stock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+.week-row.is-alt, .sector-stock.is-alt { background: var(--chip); }
+.week-row.is-best { box-shadow: inset 3px 0 0 var(--up); }
+.week-row.is-worst { box-shadow: inset 3px 0 0 var(--down); }
+.week-row .name, .sector-stock .name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero-pct {
+  margin: 4px 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 900;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+:root[data-theme="light"] .heat-tile { color: #fff; }
+@media (display-mode: standalone) {
+  .page { padding-top: calc(10px + var(--safe-t)); }
 }

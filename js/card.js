@@ -64,6 +64,7 @@
     else if (spec.kind === "topflop") drawTopFlop(ctx, spec);
     else if (spec.kind === "heatmap") drawHeat(ctx, spec);
     else if (spec.kind === "compare") drawCompare(ctx, spec);
+    else if (spec.kind === "week") drawWeek(ctx, spec);
 
     ctx.fillStyle = "#6e7680";
     ctx.font = "600 28px 'Be Vietnam Pro', sans-serif";
@@ -168,6 +169,32 @@
       ctx.font = "300 28px 'Be Vietnam Pro', sans-serif";
       ctx.fillText(fit(ctx, card.detail || "", 880), 100, y + 220);
       ctx.fillText(fit(ctx, card.session || "", 880), 100, y + 256);
+    });
+  }
+
+  function drawWeek(ctx, spec) {
+    ctx.fillStyle = "#9aa3ad";
+    ctx.font = "600 30px 'Be Vietnam Pro', sans-serif";
+    ctx.fillText(fit(ctx, spec.range || "", 930), 72, 250);
+    ctx.fillStyle = "#eceff1";
+    ctx.font = "800 40px 'Be Vietnam Pro', sans-serif";
+    ctx.fillText("Index", 72, 320);
+    ctx.fillStyle = spec.indexColor || "#eceff1";
+    ctx.font = "900 72px 'Barlow Condensed', sans-serif";
+    ctx.fillText(spec.indexPct || "–", 280, 330);
+    (spec.rows || []).slice(0, 11).forEach((row, i) => {
+      const y = 380 + i * 122;
+      rounded(ctx, 72, y, W - 144, 108, 18);
+      ctx.fillStyle = "#262a30";
+      ctx.fill();
+      ctx.fillStyle = row.mark === "best" ? "#2cff8a" : row.mark === "worst" ? "#ff3b5c" : "#9aa3ad";
+      ctx.fillRect(72, y, 10, 108);
+      ctx.fillStyle = "#eceff1";
+      ctx.font = "800 34px 'Be Vietnam Pro', sans-serif";
+      ctx.fillText(fit(ctx, row.name, 620), 104, y + 64);
+      ctx.fillStyle = row.color || "#eceff1";
+      ctx.font = "900 40px 'Barlow Condensed', sans-serif";
+      ctx.fillText(row.pct || "–", 760, y + 66);
     });
   }
 

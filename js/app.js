@@ -21,6 +21,7 @@
   }
 
   function pctColor(p, maxAbs = 3.5) {
+    if (window.MTS) return window.MTS.pctColor(p, maxAbs);
     const t = Math.max(-1, Math.min(1, p / maxAbs));
     const neu = [168, 174, 180];
     const up = [44, 255, 138];
@@ -31,9 +32,11 @@
     return `rgb(${rgb.join(",")})`;
   }
 
-  function tint(color, amount, bg = [38, 42, 48]) {
+  function tint(color, amount, bg) {
+    if (window.MTS) return window.MTS.tint(color, amount, bg);
+    const base = bg || [38, 42, 48];
     const m = color.match(/\d+/g).map(Number);
-    const rgb = bg.map((v, i) => Math.round(v * (1 - amount) + m[i] * amount));
+    const rgb = base.map((v, i) => Math.round(v * (1 - amount) + m[i] * amount));
     return `rgb(${rgb.join(",")})`;
   }
 
@@ -175,7 +178,7 @@
     const tiles = sectors.map((s, i) => {
       const col = pctColor(s.pct);
       const tail = nSectors === 11 && i >= 9 ? (i === 9 ? " tail-a" : " tail-b") : "";
-      return `<article class="tile${tail}" style="background:${tint(col, 0.1)}">
+      return `<a class="tile${tail}" href="sektor.html?ix=${encodeURIComponent(market.id)}&s=${encodeURIComponent(s.name)}" style="background:${tint(col, 0.1)}">
         <span class="tile-accent" style="background:${col}"></span>
         <div class="tile-top">
           <div>
@@ -185,7 +188,7 @@
         </div>
         <p class="tile-pct" style="color:${col}">${dePct(s.pct)}</p>
         ${usePeriod || !s.sparkline ? "" : sparkSVG(s.sparkline, col)}
-      </article>`;
+      </a>`;
     }).join("");
     const priceBlock = market.price == null
       ? `<p class="hero-line">Indexstand gerade nicht verfügbar</p>`
@@ -220,7 +223,7 @@
     const switcher = window.MTS ? window.MTS.indexSwitch(ix) : "";
     const tf = window.MTS ? window.MTS.timeframe() : 1;
     const pack = tf === 1 || !window.MTS ? null : await window.MTS.returns();
-    const tools = window.MTS ? `<div class="tool-row">${window.MTS.tfSwitcher()}${window.MTS.exportButton()}</div>` : "";
+    const tools = window.MTS ? `<div class="tool-row">${window.MTS.tfSwitcher()}${window.MTS.exportButton()}<a class="chip" href="woche.html?ix=${encodeURIComponent(ix)}">Wochen-Rückblick</a></div>` : "";
     if (window.MTS) window.MTS.syncTabs(ix);
     if (ix !== "SPX" || tf !== 1) {
       const market = (data.markets || []).find((m) => m.id === ix) || (ix === "SPX" ? {
@@ -254,7 +257,7 @@
     const tiles = data.sectors.map((s, i) => {
       const col = pctColor(s.pct);
       const tail = i >= 9 ? (i === 9 ? " tail-a" : " tail-b") : "";
-      return `<article class="tile${tail}" style="background:${tint(col, 0.1)}">
+      return `<a class="tile${tail}" href="sektor.html?ix=SPX&s=${encodeURIComponent(s.name)}" style="background:${tint(col, 0.1)}">
         <span class="tile-accent" style="background:${col}"></span>
         <div class="tile-top">
           <div>
@@ -265,7 +268,7 @@
         </div>
         <p class="tile-pct" style="color:${col}">${dePct(s.pct)}</p>
         ${sparkSVG(s.sparkline, col)}
-      </article>`;
+      </a>`;
     }).join("");
 
     $("#app").innerHTML = `
@@ -297,7 +300,7 @@
     const tiles = (market.sectors || []).map((s) => ({
       name: s.name,
       pct: s.pct == null ? "–" : dePct(s.pct),
-      color: s.pct == null ? "#9aa3ad" : pctColor(s.pct),
+      color: s.pct == null ? "#9aa3ad" : window.MTS.cardColor(s.pct),
     }));
     window.__mtsSectors = {
       title: `Sektoren · ${market.name || ix}`,
@@ -336,6 +339,7 @@
   tick();
   setInterval(tick, REFRESH_MS);
   document.addEventListener("mts-tf", () => { if (latest) render(latest); });
+  document.addEventListener("mts-theme", () => { if (latest) render(latest); });
   document.addEventListener("click", async (e) => {
     if (!e.target.closest("[data-export]") || !window.__mtsSectors) return;
     const btn = e.target.closest("[data-export]");

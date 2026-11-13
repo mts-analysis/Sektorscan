@@ -18,19 +18,30 @@
       const sign = n > 0 ? "+" : n < 0 ? "−" : "";
       return `${sign}${C.deNum(Math.abs(n), nd)} %`;
     },
-    pctColor(p, maxAbs = 3.5) {
-      const t = Math.max(-1, Math.min(1, p / maxAbs));
-      const neu = [168, 174, 180];
-      const up = [44, 255, 138];
-      const down = [255, 59, 92];
+    mixPct(p, maxAbs, light) {
+      const t = Math.max(-1, Math.min(1, Number(p) / maxAbs));
+      const neu = light ? [90, 98, 108] : [168, 174, 180];
+      const up = light ? [12, 138, 75] : [44, 255, 138];
+      const down = light ? [208, 18, 58] : [255, 59, 92];
       const target = t >= 0 ? up : down;
       const a = Math.pow(Math.abs(t), 0.7);
       const rgb = neu.map((v, i) => Math.round(v + (target[i] - v) * a));
       return `rgb(${rgb.join(",")})`;
     },
-    tint(color, amount, bg = [38, 42, 48]) {
-      const m = color.match(/\d+/g).map(Number);
-      const rgb = bg.map((v, i) => Math.round(v * (1 - amount) + m[i] * amount));
+    pctColor(p, maxAbs = 3.5) {
+      if (p === null || p === undefined || Number.isNaN(Number(p))) return "var(--muted)";
+      return C.mixPct(p, maxAbs, document.documentElement.dataset.theme === "light");
+    },
+    cardColor(p, maxAbs = 3.5) {
+      if (p === null || p === undefined || Number.isNaN(Number(p))) return "#9aa3ad";
+      return C.mixPct(p, maxAbs, false);
+    },
+    tint(color, amount, bg) {
+      const light = document.documentElement.dataset.theme === "light";
+      const base = bg || (light ? [255, 255, 255] : [38, 42, 48]);
+      const m = String(color).match(/\d+/g);
+      if (!m) return color;
+      const rgb = base.map((v, i) => Math.round(v * (1 - amount) + Number(m[i] || v) * amount));
       return `rgb(${rgb.join(",")})`;
     },
     escapeHtml(s) {
@@ -66,10 +77,11 @@
       const unix = data && data.stand && data.stand.unix;
       if (iso || unix) {
         el.textContent = C.localStamp(iso || unix * 1000);
-        return;
+      } else {
+        const label = data && data.stand && data.stand.label;
+        el.textContent = label ? `Stand: ${label}` : "Stand unbekannt";
       }
-      const label = data && data.stand && data.stand.label;
-      el.textContent = label ? `Stand: ${label}` : "Stand unbekannt";
+      if (data && (data.rows || data.markets || data.index) && C.applyFreshness) C.applyFreshness(data);
     },
     localStamp(value) {
       const d = new Date(value);
@@ -190,10 +202,18 @@
       const q = new URLSearchParams(location.search).get("ix");
       return C.INDICES.some((x) => x.id === q) ? q : "SPX";
     },
-    indexSwitch(current) {
-      return `<nav class="chip-row ix-scroll index-switch" aria-label="Index">${C.INDICES.map((ix) =>
-        `<a class="chip${ix.id === current ? " is-on" : ""}" href="?ix=${ix.id}"${ix.id === current ? ' aria-current="true"' : ""}>${ix.name}</a>`
-      ).join("")}</nav>`;
+    indexSwitch(current, extra) {
+      const keep = extra && typeof extra === "object" ? extra : null;
+      return `<nav class="chip-row ix-scroll index-switch" aria-label="Index">${C.INDICES.map((ix) => {
+        const q = new URLSearchParams();
+        if (keep) {
+          Object.entries(keep).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== "") q.set(k, v);
+          });
+        }
+        q.set("ix", ix.id);
+        return `<a class="chip${ix.id === current ? " is-on" : ""}" href="?${q.toString()}"${ix.id === current ? ' aria-current="true"' : ""}>${ix.name}</a>`;
+      }).join("")}</nav>`;
     },
     syncTabs(ix) {
       document.querySelectorAll("nav.tabs a").forEach((a) => {
@@ -302,6 +322,101 @@
   const TSE = new Set("2026-01-01,2026-01-02,2026-01-03,2026-01-12,2026-02-11,2026-02-23,2026-03-20,2026-04-29,2026-05-03,2026-05-04,2026-05-05,2026-07-20,2026-08-11,2026-09-21,2026-09-22,2026-09-23,2026-10-12,2026-11-03,2026-11-23,2026-12-31,2027-01-01,2027-01-02,2027-01-03,2027-01-11,2027-02-11,2027-02-23,2027-03-22,2027-04-29,2027-05-03,2027-05-04,2027-05-05,2027-07-19,2027-08-11,2027-09-20,2027-09-23,2027-10-11,2027-11-03,2027-11-23,2027-12-31".split(","));
   const LSE = new Set("2026-01-01,2026-04-03,2026-04-06,2026-05-04,2026-05-25,2026-08-31,2026-12-25,2026-12-28,2027-01-01,2027-03-26,2027-03-29,2027-05-03,2027-05-31,2027-08-30,2027-12-27,2027-12-28".split(","));
 
+  const EXCHANGES = [
+    { name: "NYSE", tz: "America/New_York", open: 9 * 60 + 30, close: 16 * 60, holidays: NYSE },
+    { name: "Xetra", tz: "Europe/Berlin", open: 9 * 60, close: 17 * 60 + 30, holidays: XETRA },
+    { name: "KRX", tz: "Asia/Seoul", open: 9 * 60, close: 15 * 60 + 30, holidays: KRX },
+    { name: "TSE", tz: "Asia/Tokyo", open: 9 * 60, close: 15 * 60, holidays: TSE },
+    { name: "LSE", tz: "Europe/London", open: 8 * 60, close: 16 * 60 + 30, holidays: LSE },
+  ];
+
+  function ymdShift(ymd, days) {
+    const [y, m, d] = ymd.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d + days));
+    const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(dt.getUTCDate()).padStart(2, "0");
+    return `${dt.getUTCFullYear()}-${mm}-${dd}`;
+  }
+
+  function utcAt(tz, ymd, minutes) {
+    const [y, m, d] = ymd.split("-").map(Number);
+    let guess = Date.UTC(y, m - 1, d, 0, 0) + minutes * 60000;
+    for (let i = 0; i < 4; i++) {
+      const z = C.zonedNow(new Date(guess), tz);
+      const dayDelta = z.ymd === ymd ? 0 : (z.ymd < ymd ? 1 : -1);
+      const diff = dayDelta * 1440 + (minutes - z.minutes);
+      if (diff === 0) break;
+      guess += diff * 60000;
+    }
+    return new Date(guess);
+  }
+
+  function tradingDay(ex, ymd) {
+    const probe = C.zonedNow(utcAt(ex.tz, ymd, 12 * 60), ex.tz);
+    if (probe.weekday === "Sat" || probe.weekday === "Sun") return false;
+    return !ex.holidays.has(ymd);
+  }
+
+  function isOpen(ex, now) {
+    const z = C.zonedNow(now, ex.tz);
+    if (z.weekday === "Sat" || z.weekday === "Sun" || ex.holidays.has(z.ymd)) return false;
+    return z.minutes >= ex.open && z.minutes < ex.close;
+  }
+
+  function completedCloses(ex, now) {
+    const z = C.zonedNow(now, ex.tz);
+    const closes = [];
+    let ymd = z.ymd;
+    for (let i = 0; i < 16 && closes.length < 2; i++) {
+      if (tradingDay(ex, ymd)) {
+        const today = ymd === z.ymd;
+        if (!(today && z.minutes < ex.close)) closes.push(utcAt(ex.tz, ymd, ex.close));
+      }
+      ymd = ymdShift(ymd, -1);
+    }
+    return closes;
+  }
+
+  C.isStale = function (iso, indexId, now = new Date()) {
+    const t = new Date(iso);
+    if (Number.isNaN(t.getTime()) || t.getTime() > now.getTime() + 5 * 60 * 1000) return false;
+    const names = indexId && C.INDEX_EXCHANGE[indexId] ? [C.INDEX_EXCHANGE[indexId]] : EXCHANGES.map((ex) => ex.name);
+    const list = names.map((name) => EXCHANGES.find((ex) => ex.name === name)).filter(Boolean);
+    if (list.some((ex) => isOpen(ex, now))) return now.getTime() - t.getTime() > 45 * 60 * 1000;
+    let latestLast = null;
+    let prevOfLatest = null;
+    list.forEach((ex) => {
+      const closes = completedCloses(ex, now);
+      if (!closes[0]) return;
+      if (!latestLast || closes[0] > latestLast) {
+        latestLast = closes[0];
+        prevOfLatest = closes[1] || null;
+      }
+    });
+    if (!prevOfLatest) return false;
+    return t < prevOfLatest;
+  };
+
+  C.applyFreshness = function (data, now = new Date()) {
+    const iso = data && (data.updated_at_utc || (data.stand && data.stand.iso_utc));
+    if (!iso) return;
+    const file = (location.pathname.split("/").pop() || "index.html");
+    const ixParam = new URLSearchParams(location.search).get("ix");
+    const multi = file === "vergleich.html" || file === "earnings.html";
+    const ix = C.INDICES.some((x) => x.id === ixParam) ? ixParam : "SPX";
+    const banner = document.getElementById("stale-banner");
+    if (!banner) return;
+    if (!C.isStale(iso, multi ? null : ix, now)) {
+      banner.hidden = true;
+      return;
+    }
+    const when = new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+    }).format(new Date(iso));
+    banner.hidden = false;
+    banner.textContent = `Daten vom ${when} – evtl. nicht aktuell`;
+  };
+
   function paintMarkets() {
     const host = document.getElementById("market-status");
     if (!host || !window.MTS) return;
@@ -331,4 +446,133 @@
     });
     document.dispatchEvent(new CustomEvent("mts-merk", { detail: { ticker, on } }));
   }, true);
+
+  const PAGES = ["index.html", "heatmap.html", "vergleich.html", "scanner.html", "topflop.html", "earnings.html"];
+
+  function pageFile() {
+    const name = location.pathname.split("/").pop();
+    return name || "index.html";
+  }
+
+  function paintThemeButton() {
+    const btn = document.querySelector("[data-theme-toggle]");
+    if (!btn) return;
+    const light = document.documentElement.dataset.theme === "light";
+    btn.textContent = light ? "Dunkel" : "Hell";
+    btn.setAttribute("aria-pressed", light ? "true" : "false");
+    btn.setAttribute("aria-label", light ? "Zur dunklen Darstellung" : "Zur hellen Darstellung");
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", light ? "#f3f5f7" : "#15171A");
+  }
+
+  function setTheme(next) {
+    if (next === "light") document.documentElement.setAttribute("data-theme", "light");
+    else document.documentElement.removeAttribute("data-theme");
+    try { localStorage.setItem("mts-theme", next === "light" ? "light" : "dark"); } catch { /* private mode */ }
+    paintThemeButton();
+    document.dispatchEvent(new CustomEvent("mts-theme"));
+  }
+
+  const header = document.querySelector(".app-header");
+  if (header && !header.querySelector("[data-theme-toggle]")) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "theme-toggle";
+    btn.setAttribute("data-theme-toggle", "");
+    const market = header.querySelector(".market-row");
+    header.insertBefore(btn, market || null);
+    btn.addEventListener("click", () => {
+      setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+    });
+  }
+  paintThemeButton();
+
+  const main = document.getElementById("app");
+  if (main && !document.getElementById("stale-banner")) {
+    const banner = document.createElement("p");
+    banner.id = "stale-banner";
+    banner.className = "stale-banner";
+    banner.hidden = true;
+    main.parentElement.insertBefore(banner, main);
+  }
+
+  const here = pageFile();
+  const pageIndex = PAGES.indexOf(here);
+  if (pageIndex >= 0) {
+    document.querySelector(".page")?.classList.add("has-dots");
+    const dots = document.createElement("div");
+    dots.className = "swipe-dots";
+    dots.setAttribute("aria-hidden", "true");
+    dots.innerHTML = PAGES.map((_, i) => `<i class="${i === pageIndex ? "is-on" : ""}"></i>`).join("");
+    document.body.appendChild(dots);
+    try {
+      const dir = sessionStorage.getItem("mts-swipe");
+      if (dir) {
+        sessionStorage.removeItem("mts-swipe");
+        document.querySelector(".page")?.classList.add(dir === "prev" ? "swipe-prev" : "swipe-next");
+      }
+    } catch { /* private mode */ }
+  }
+
+  function blockedSwipeTarget(node) {
+    if (!node || !node.closest) return true;
+    if (node.closest(".ix-scroll, .market-row, .filter-sheet, .heat-band, .heat-sec, .tabs, .suggest, .range-fields, svg, canvas, input, textarea, select")) return true;
+    const modal = document.getElementById("chart-modal");
+    if (modal && !modal.hidden && modal.contains(node)) return true;
+    let el = node;
+    while (el && el !== document.body) {
+      const style = getComputedStyle(el);
+      const ox = style.overflowX;
+      if ((ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth + 8) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  let swipeStart = null;
+  let swallowClick = false;
+  document.addEventListener("touchstart", (e) => {
+    if (pageIndex < 0 || e.touches.length !== 1) {
+      swipeStart = null;
+      return;
+    }
+    const t = e.touches[0];
+    swipeStart = {
+      x: t.clientX,
+      y: t.clientY,
+      blocked: blockedSwipeTarget(e.target),
+    };
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (!swipeStart || swipeStart.blocked) {
+      swipeStart = null;
+      return;
+    }
+    const t = e.changedTouches[0];
+    const dx = t.clientX - swipeStart.x;
+    const dy = t.clientY - swipeStart.y;
+    swipeStart = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+    const dir = dx < 0 ? 1 : -1;
+    const next = PAGES[pageIndex + dir];
+    if (!next) return;
+    const q = new URLSearchParams(location.search);
+    const keep = new URLSearchParams();
+    if (q.get("ix")) keep.set("ix", q.get("ix"));
+    if (q.get("tf")) keep.set("tf", q.get("tf"));
+    try { sessionStorage.setItem("mts-swipe", dir > 0 ? "next" : "prev"); } catch { /* private mode */ }
+    swallowClick = true;
+    location.href = keep.toString() ? `${next}?${keep}` : next;
+  }, { passive: true });
+  document.addEventListener("touchcancel", () => { swipeStart = null; }, { passive: true });
+  document.addEventListener("click", (e) => {
+    if (!swallowClick) return;
+    swallowClick = false;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
 })();

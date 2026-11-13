@@ -106,7 +106,7 @@
         loadJSON("data/stocks.json"),
         loadJSON("data/earnings.json").catch(() => null),
       ]);
-      setStand(earnings || stocks);
+      setStand(stocks);
       for (const row of stocks.rows || []) state.rows.set(row.t, row);
       if (!earnings) {
         state.note = "Der Termin-Kalender ist gerade nicht verfügbar.";

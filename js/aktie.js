@@ -137,5 +137,6 @@
       $("#app").innerHTML = `<p class="error">Die Kursdaten konnten nicht geladen werden.</p>`;
     }
   }
+  document.addEventListener("mts-theme", () => { if (state.row) render(); });
   start();
 })();

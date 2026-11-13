@@ -562,4 +562,5 @@
     }).catch(() => {});
   }, window.MTS.REFRESH_MS);
   document.addEventListener("mts-tf", () => { if (state.data) refresh(); });
+  document.addEventListener("mts-theme", () => { if (state.data) refresh(); });
 })();
