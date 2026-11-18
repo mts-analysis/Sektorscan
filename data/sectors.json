@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-11-18T06:55:35Z",
+  "updated_at_utc": "2026-11-18T08:09:15Z",
   "stand": {
     "unix": 1794951732,
     "iso_utc": "2026-11-17T21:42:12Z",
@@ -979,8 +979,8 @@
       "price_currency": "USD",
       "stock_session": "2026-11-17",
       "up_stocks": 75,
-      "down_stocks": 426,
-      "n_stocks": 502
+      "down_stocks": 425,
+      "n_stocks": 501
     },
     {
       "id": "DAX",
@@ -1965,11 +1965,11 @@
         59024.2812
       ],
       "stand": {
-        "unix": 1794983401,
-        "iso_utc": "2026-11-18T06:30:01Z",
-        "et": "18.11.2026, 01:30 ET",
-        "mez": "18.11.2026, 07:30 MEZ",
-        "label": "18.11.2026, 01:30 ET / 07:30 MEZ"
+        "unix": 1794984303,
+        "iso_utc": "2026-11-18T06:45:03Z",
+        "et": "18.11.2026, 01:45 ET",
+        "mez": "18.11.2026, 07:45 MEZ",
+        "label": "18.11.2026, 01:45 ET / 07:45 MEZ"
       },
       "currency": "JPY",
       "price_currency": "JPY",
