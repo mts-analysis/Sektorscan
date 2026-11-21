@@ -437,5 +437,10 @@
   }
   document.addEventListener("mts-theme", () => { if (state.ready) paint(); });
   window.addEventListener("resize", () => { if (state.ready) paint(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopTimer();
+    else if (state.playing) startTimer();
+  });
+  window.addEventListener("pagehide", () => stopTimer());
   start();
 })();

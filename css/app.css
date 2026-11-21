@@ -781,6 +781,17 @@ a.chip { text-decoration: none; display: inline-block; }
   height: 100dvh;
   overflow: hidden;
 }
+.page.is-scanner .check-block {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 28vh;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 8px;
+}
+.page.is-scanner .check-card { padding: 6px 10px; }
+.page.is-scanner .check-px,
+.page.is-scanner .check-meta { display: none; }
 .page.is-scanner .main {
   display: flex;
   flex-direction: column;
