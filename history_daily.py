@@ -563,6 +563,11 @@ def main() -> int:
         write_profiles()
     except Exception as e:  # noqa: BLE001
         print(f"warn: Profile nicht geschrieben ({e!r})", file=sys.stderr)
+    try:
+        from top5 import write_top5
+        write_top5()
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: top5.json nicht geschrieben ({e!r})", file=sys.stderr)
     return 0
 
 
@@ -587,6 +592,14 @@ if __name__ == "__main__":
             write_profiles()
         except Exception as e:  # noqa: BLE001
             print(f"STOP Profile: {e!r}", file=sys.stderr)
+            raise SystemExit(1)
+        raise SystemExit(0)
+    if "--top5-only" in sys.argv:
+        try:
+            from top5 import write_top5
+            write_top5()
+        except Exception as e:  # noqa: BLE001
+            print(f"STOP top5: {e!r}", file=sys.stderr)
             raise SystemExit(1)
         raise SystemExit(0)
     raise SystemExit(main())

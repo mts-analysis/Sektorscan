@@ -1241,3 +1241,30 @@ table.sais tbody tr { cursor: pointer; }
   .wheel { width: 100%; margin: 0; }
   .rad-date { font-size: 3rem; }
 }
+
+.check-block { margin: 0 0 14px; }
+.check-block[hidden] { display: none; }
+.check-list { display: flex; flex-direction: column; gap: 8px; }
+.check-card {
+  display: block;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-decoration: none;
+  color: inherit;
+}
+.check-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.check-head .kicker { display: block; margin-top: 2px; }
+.check-pct { font-weight: 800; white-space: nowrap; }
+.check-px { margin: 2px 0 0; font-size: 0.8rem; color: var(--sub); }
+.check-flags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.check-flag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  background: color-mix(in srgb, var(--gold) 18%, var(--card));
+  color: var(--fg);
+  border: 1px solid var(--line);
+}
+.check-meta { margin: 4px 0 0; font-size: 0.75rem; color: var(--sub); }

@@ -33,7 +33,7 @@ Ein zweiter Lauf, **Historie und Earnings**, startet einmal werktags um
 5- und 20-Tage-Änderungen nach `data/history/returns.json`, die
 nächsten Yahoo-Termine nach `data/earnings.json`, die vorberechneten
 Punkte für das Sektor-Rad nach `data/history/rad.json` sowie Kennzahlen,
-Firmenprofil und die letzten Meldungen nach `data/profiles/`.
+Firmenprofil und die letzten Meldungen nach `data/profiles/` sowie die „Top 5 im Check“ nach `data/top5.json`.
 Stammdaten der Firma werden etwa wöchentlich erneuert, fehlende Angaben
 erscheinen als „k. A.“. Der 15-Minuten-Lauf fasst diese Dateien nicht an.
 Die Aktie-Seite öffnet einen TradingView-Chart zum jeweiligen Titel.
