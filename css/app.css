@@ -782,7 +782,7 @@ a.chip { text-decoration: none; display: inline-block; }
   overflow: hidden;
 }
 .page.is-scanner .check-block {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
   max-height: 28vh;
   overflow: auto;
