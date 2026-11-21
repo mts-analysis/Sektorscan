@@ -28,6 +28,28 @@
     });
   }
 
+  function applyLive(etf, sectors) {
+    if (!etf || !sectors || !sectors.spy || !sectors.spy.price || !Array.isArray(sectors.sectors)) return etf;
+    const session = sectors.sectors[0] && sectors.sectors[0].session_date;
+    if (!session) return etf;
+    const prices = { SPY: Number(sectors.spy.price) };
+    sectors.sectors.forEach((s) => { prices[s.ticker] = Number(s.price); });
+    if (SEC.some((t) => !(prices[t] > 0)) || !(prices.SPY > 0)) return etf;
+    const dates = etf.dates.slice();
+    const close = {};
+    Object.entries(etf.close).forEach(([t, arr]) => { close[t] = arr.slice(); });
+    const last = dates[dates.length - 1];
+    if (last === session) {
+      Object.keys(close).forEach((t) => { if (prices[t] > 0) close[t][close[t].length - 1] = prices[t]; });
+    } else if (session > last) {
+      dates.push(session);
+      Object.keys(close).forEach((t) => close[t].push(prices[t] > 0 ? prices[t] : null));
+    } else {
+      return etf;
+    }
+    return { ...etf, dates, close, live: true };
+  }
+
   function fromPrecomputed(doc) {
     const dates = doc.dates || [];
     const names = doc.names || {};
@@ -363,8 +385,11 @@
       ]);
       if (sectors) window.MTS.setStand(sectors);
       let model = null;
-      if (rad && rad.dates && rad.r) model = fromPrecomputed(rad);
-      else if (etf) model = fromCloses(etf);
+      const liveEtf = etf && sectors ? applyLive(etf, sectors) : etf;
+      const liveDate = liveEtf && liveEtf.dates && liveEtf.dates[liveEtf.dates.length - 1];
+      const radDate = rad && rad.dates && rad.dates[rad.dates.length - 1];
+      if (rad && rad.dates && rad.r && (!liveDate || liveDate <= radDate)) model = fromPrecomputed(rad);
+      else if (liveEtf) model = fromCloses(liveEtf);
       if (!model || !model.frames.length) throw new Error("keine Punkte");
       state.model = model;
       state.season = season;

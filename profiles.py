@@ -544,7 +544,10 @@ def _fetch_one(yahoo: str) -> tuple[dict | None, list]:
     news = []
     try:
         if hasattr(ticker, "get_news"):
-            news = ticker.get_news(count=5) or []
+            try:
+                news = ticker.get_news(count=5) or []
+            except TypeError:
+                news = ticker.get_news() or []
         else:
             news = ticker.news or []
     except Exception:
