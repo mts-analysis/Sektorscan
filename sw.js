@@ -1,5 +1,5 @@
 /* HTML, CSS and JS are cache-first. Quote and history JSON stay network-only. */
-const SHELL = "mts-shell-2";
+const SHELL = "mts-shell-3";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

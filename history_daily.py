@@ -330,6 +330,83 @@ def write_etf_history() -> Path:
     out = HIST / "etf.json"
     out.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"etf.json {len(dates)} Tage, {len(close)} Reihen, bis {dates[-1] if dates else '-'}", flush=True)
+    write_rad_frames(dates, close)
+    return out
+
+
+SEC_RAD = [t for t in ETF_TICKERS if t != "SPY"]
+
+
+def _ema(values, span):
+    k = 2 / (span + 1)
+    prev = None
+    out = []
+    for v in values:
+        if v is None or (isinstance(v, float) and v != v):
+            out.append(None)
+            continue
+        prev = float(v) if prev is None else float(v) * k + prev * (1 - k)
+        out.append(prev)
+    return out
+
+
+def write_rad_frames(dates=None, close=None) -> Path:
+    """Precompute one year of RRG points so the Rad tab stays smooth on an iPad."""
+    if dates is None or close is None:
+        path = HIST / "etf.json"
+        if not path.exists():
+            raise RuntimeError("etf.json fehlt")
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        dates = doc.get("dates") or []
+        close = doc.get("close") or {}
+    spy = close.get("SPY") or []
+    series = {}
+    for t in SEC_RAD:
+        px = close.get(t) or []
+        rs = []
+        n = max(len(px), len(spy), len(dates))
+        for i in range(len(dates)):
+            v = px[i] if i < len(px) else None
+            s = spy[i] if i < len(spy) else None
+            rs.append(100.0 * v / s if v and s and v > 0 and s > 0 else None)
+        e10 = _ema(rs, 10)
+        e30 = _ema(rs, 30)
+        ratio = [100.0 * a / b if a is not None and b else None for a, b in zip(e10, e30)]
+        mom = []
+        for i, v in enumerate(ratio):
+            prev = ratio[i - 5] if i >= 5 else None
+            mom.append(100.0 * v / prev if v is not None and prev else None)
+        series[t] = {"ratio": ratio, "mom": mom}
+
+    frames = []
+    for i in range(len(dates)):
+        if all(series[t]["ratio"][i] is not None and series[t]["mom"][i] is not None for t in SEC_RAD if t in series):
+            if len(series) == len(SEC_RAD):
+                frames.append(i)
+    if not frames:
+        raise RuntimeError("keine Rad-Punkte")
+    frames = frames[-250:]
+    devs = []
+    for i in frames:
+        for t in SEC_RAD:
+            devs.append(abs(series[t]["ratio"][i] - 100.0))
+            devs.append(abs(series[t]["mom"][i] - 100.0))
+    devs.sort()
+    p95 = devs[int(0.95 * (len(devs) - 1))] if devs else 0.4
+    max_dev = max(0.4, float(p95))
+    names = {t: ETF_NAMES[t] for t in SEC_RAD}
+    payload = {
+        "updated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "note": "RRG-Näherung aus SPDR-Sektor-ETFs und SPY. Historischer Durchschnitt – keine Prognose.",
+        "names": names,
+        "dates": [dates[i] for i in frames],
+        "max": round(max_dev, 4),
+        "r": {t: [round(series[t]["ratio"][i], 3) for i in frames] for t in SEC_RAD},
+        "m": {t: [round(series[t]["mom"][i], 3) for i in frames] for t in SEC_RAD},
+    }
+    out = HIST / "rad.json"
+    out.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    print(f"rad.json {len(frames)} Sitzungen, {payload['dates'][0]}–{payload['dates'][-1]}, max {max_dev:.2f}", flush=True)
     return out
 
 
@@ -473,10 +550,19 @@ def main() -> int:
         write_etf_history()
     except Exception as e:  # noqa: BLE001
         print(f"warn: ETF-Historie nicht geschrieben ({e!r})", file=sys.stderr)
+        try:
+            write_rad_frames()
+        except Exception as e2:  # noqa: BLE001
+            print(f"warn: rad.json nicht geschrieben ({e2!r})", file=sys.stderr)
     try:
         maybe_write_seasonality()
     except Exception as e:  # noqa: BLE001
         print(f"warn: Saison-Statistik nicht geschrieben ({e!r})", file=sys.stderr)
+    try:
+        from profiles import write_profiles
+        write_profiles()
+    except Exception as e:  # noqa: BLE001
+        print(f"warn: Profile nicht geschrieben ({e!r})", file=sys.stderr)
     return 0
 
 
@@ -486,6 +572,21 @@ if __name__ == "__main__":
             write_returns_from_shards()
         except Exception as e:  # noqa: BLE001
             print(f"STOP returns: {e!r}", file=sys.stderr)
+            raise SystemExit(1)
+        raise SystemExit(0)
+    if "--rad-only" in sys.argv:
+        try:
+            write_rad_frames()
+        except Exception as e:  # noqa: BLE001
+            print(f"STOP rad: {e!r}", file=sys.stderr)
+            raise SystemExit(1)
+        raise SystemExit(0)
+    if "--profiles-only" in sys.argv:
+        try:
+            from profiles import write_profiles
+            write_profiles()
+        except Exception as e:  # noqa: BLE001
+            print(f"STOP Profile: {e!r}", file=sys.stderr)
             raise SystemExit(1)
         raise SystemExit(0)
     raise SystemExit(main())

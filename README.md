@@ -30,9 +30,16 @@ aktualisieren** manuell starten (*Run workflow*).
 
 Ein zweiter Lauf, **Historie und Earnings**, startet einmal werktags um
 07:15 UTC. Er schreibt die 1-Jahres-Schlüsse nach `data/history/`, die
-5- und 20-Tage-Änderungen nach `data/history/returns.json` und die
-nächsten Yahoo-Termine nach `data/earnings.json`. Der 15-Minuten-Lauf fasst
-diese Dateien nicht an.
+5- und 20-Tage-Änderungen nach `data/history/returns.json`, die
+nächsten Yahoo-Termine nach `data/earnings.json`, die vorberechneten
+Punkte für das Sektor-Rad nach `data/history/rad.json` sowie Kennzahlen,
+Firmenprofil und die letzten Meldungen nach `data/profiles/`.
+Stammdaten der Firma werden etwa wöchentlich erneuert, fehlende Angaben
+erscheinen als „k. A.“. Der 15-Minuten-Lauf fasst diese Dateien nicht an.
+Die Aktie-Seite öffnet einen TradingView-Chart zum jeweiligen Titel.
+Das Sektor-Rad läuft über das letzte Börsenjahr, mit Datum, Tempo 1×/4×
+und Kondensstreifen; es trägt den Hinweis „Historischer Durchschnitt –
+keine Prognose“.
 
 ## Wiederholer und Earnings
 

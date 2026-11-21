@@ -1152,3 +1152,92 @@ table.sais tbody tr { cursor: pointer; }
   .sais-cards { display: none; }
   .sais-wide { display: block; }
 }
+
+.block-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.fund-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 16px;
+}
+@media (min-width: 720px) {
+  .fund-list { grid-template-columns: 1fr 1fr; }
+}
+.firma-text {
+  margin: 0 0 10px;
+  color: var(--sub);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.news-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.news-list li {
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+.news-list li:last-child { margin: 0; padding: 0; border: 0; }
+.news-list a {
+  color: var(--fg);
+  font-weight: 700;
+  text-decoration: none;
+  display: block;
+}
+.news-list a:hover { color: var(--lime); }
+.news-list .muted { display: block; margin-top: 2px; font-size: 0.72rem; }
+.chart-toggle { flex-wrap: wrap; }
+
+.rad-stage {
+  display: grid;
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 12px;
+}
+.rad-clock {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.rad-weekday {
+  margin: 0;
+  color: var(--sub);
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: capitalize;
+}
+.rad-date {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 900;
+  font-size: 2.6rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.rad-clock input[type="range"] { width: min(100%, 280px); }
+.rad-date-field input[type="date"] {
+  display: block;
+  margin: 4px auto 0;
+  border: 1px solid var(--line);
+  background: var(--bg1);
+  color: var(--fg);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  font: 600 0.9rem "Be Vietnam Pro", system-ui, sans-serif;
+  color-scheme: inherit;
+}
+.rad-controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+@media (min-width: 800px) {
+  .rad-stage {
+    grid-template-columns: minmax(0, 1fr) 240px;
+    align-items: center;
+  }
+  .wheel { width: 100%; margin: 0; }
+  .rad-date { font-size: 3rem; }
+}

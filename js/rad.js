@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const { $, dePct, escapeHtml, loadJSON, seasonLine } = window.MTS;
+  const { $, escapeHtml, loadJSON, seasonLine } = window.MTS;
   const SEC = ["XLK", "XLV", "XLF", "XLY", "XLP", "XLE", "XLI", "XLB", "XLU", "XLRE", "XLC"];
   const QCOLOR = {
     "Führend": "#3ddc6a",
@@ -8,7 +8,8 @@
     "Hinkt hinterher": "#ff4b5c",
     "Erholt sich": "#2ec8c4",
   };
-  const state = { frame: 0, playing: false, timer: 0, hits: [] };
+  const TRAIL = 10;
+  const state = { frame: 0, playing: false, timer: 0, hits: [], speed: 1, model: null, season: null, ready: false };
 
   function quad(x, y) {
     if (x >= 100 && y >= 100) return "Führend";
@@ -27,29 +28,19 @@
     });
   }
 
-  function applyLive(etf, sectors) {
-    if (!sectors || !sectors.spy || !sectors.spy.price || !Array.isArray(sectors.sectors)) return etf;
-    const session = sectors.sectors[0] && sectors.sectors[0].session_date;
-    if (!session) return etf;
-    const prices = { SPY: Number(sectors.spy.price) };
-    sectors.sectors.forEach((s) => { prices[s.ticker] = Number(s.price); });
-    if (SEC.some((t) => !(prices[t] > 0)) || !(prices.SPY > 0)) return etf;
-    const dates = etf.dates.slice();
-    const close = {};
-    Object.entries(etf.close).forEach(([t, arr]) => { close[t] = arr.slice(); });
-    const last = dates[dates.length - 1];
-    if (last === session) {
-      Object.keys(close).forEach((t) => { if (prices[t] > 0) close[t][close[t].length - 1] = prices[t]; });
-    } else if (session > last) {
-      dates.push(session);
-      Object.keys(close).forEach((t) => close[t].push(prices[t] > 0 ? prices[t] : null));
-    } else {
-      return etf;
-    }
-    return { ...etf, dates, close, live: true };
+  function fromPrecomputed(doc) {
+    const dates = doc.dates || [];
+    const names = doc.names || {};
+    const max = Number(doc.max) || 0.4;
+    const series = {};
+    SEC.forEach((t) => {
+      series[t] = { ratio: (doc.r && doc.r[t]) || [], mom: (doc.m && doc.m[t]) || [] };
+    });
+    const frames = dates.map((_, i) => i);
+    return { dates, series, frames, max, names, precomputed: true };
   }
 
-  function build(etf) {
+  function fromCloses(etf) {
     const dates = etf.dates;
     const spy = etf.close.SPY;
     const series = {};
@@ -66,31 +57,37 @@
     for (let i = 0; i < dates.length; i++) {
       if (SEC.every((t) => series[t].ratio[i] != null && series[t].mom[i] != null)) frames.push(i);
     }
-    const windowFrames = frames.slice(-20);
-    let max = 0.4;
+    const windowFrames = frames.slice(-250);
+    const devs = [];
     windowFrames.forEach((end) => {
-      for (let k = Math.max(0, end - 9); k <= end; k++) {
-        SEC.forEach((t) => {
-          max = Math.max(max, Math.abs(series[t].ratio[k] - 100), Math.abs(series[t].mom[k] - 100));
-        });
-      }
+      SEC.forEach((t) => {
+        devs.push(Math.abs(series[t].ratio[end] - 100), Math.abs(series[t].mom[end] - 100));
+      });
     });
-    return { dates, series, frames: windowFrames, max, names: etf.names || {} };
+    devs.sort((a, b) => a - b);
+    const p95 = devs.length ? devs[Math.floor(0.95 * (devs.length - 1))] : 0.4;
+    return { dates, series, frames: windowFrames, max: Math.max(0.4, p95), names: etf.names || {}, precomputed: false };
   }
 
-  function tag(iso) {
+  function sessionDate(iso) {
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
-    return m ? `${m[3]}.${m[2]}.` : iso;
+    if (!m) return { weekday: "", label: iso || "", iso: iso || "" };
+    const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12));
+    const weekday = new Intl.DateTimeFormat("de-DE", { weekday: "long", timeZone: "UTC" }).format(dt);
+    return { weekday, label: `${m[3]}.${m[2]}.${m[1]}`, iso: `${m[1]}-${m[2]}-${m[3]}` };
   }
 
   function pointsAt(model, end) {
     return SEC.map((t) => {
       const tail = [];
-      for (let k = Math.max(0, end - 9); k <= end; k++) {
+      const start = Math.max(0, end - (TRAIL - 1));
+      for (let k = start; k <= end; k++) {
         const x = model.series[t].ratio[k];
         const y = model.series[t].mom[k];
         if (x == null || y == null) continue;
-        tail.push([(x - 100) / model.max, (y - 100) / model.max, x, y]);
+        const nx = Math.max(-1.05, Math.min(1.05, (x - 100) / model.max));
+        const ny = Math.max(-1.05, Math.min(1.05, (y - 100) / model.max));
+        tail.push([nx, ny, x, y]);
       }
       const last = tail[tail.length - 1] || [0, 0, 100, 100];
       return {
@@ -143,24 +140,35 @@
     state.hits = [];
     pts.forEach((pt) => {
       if (pt.tail.length > 1) {
-        ctx.beginPath();
-        ctx.strokeStyle = pt.color;
-        ctx.globalAlpha = 0.85;
-        ctx.lineWidth = 2;
-        pt.tail.forEach((p, i) => {
-          const x = cx + p[0] * R;
-          const y = cy - p[1] * R;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        for (let i = 1; i < pt.tail.length; i++) {
+          const t = i / (pt.tail.length - 1);
+          const a = pt.tail[i - 1];
+          const b = pt.tail[i];
+          ctx.beginPath();
+          ctx.strokeStyle = pt.color;
+          ctx.globalAlpha = 0.08 + 0.62 * t;
+          ctx.lineWidth = 1.2 + 2.8 * t;
+          ctx.moveTo(cx + a[0] * R, cy - a[1] * R);
+          ctx.lineTo(cx + b[0] * R, cy - b[1] * R);
+          ctx.stroke();
+        }
         ctx.globalAlpha = 1;
       }
       const x = cx + pt.x * R;
       const y = cy - pt.y * R;
+      ctx.save();
+      ctx.shadowColor = pt.color;
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.fillStyle = pt.color;
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
       ctx.beginPath();
       ctx.fillStyle = "#f4f7f8";
-      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.lineWidth = 3;
       ctx.strokeStyle = pt.color;
@@ -173,31 +181,125 @@
     return pts;
   }
 
-  function render(model, season) {
+  function paint() {
+    const model = state.model;
+    if (!model) return;
     const end = model.frames[state.frame];
     const iso = model.dates[end];
+    const when = sessionDate(iso);
     const pts = pointsAt(model, end);
-    const month = new Date().getMonth() + 1;
+    const canvas = $("#wheel");
+    if (canvas) drawLive(canvas, model);
+    const dayEl = $("#rad-date");
+    const weekEl = $("#rad-weekday");
+    const slider = $("#day");
+    const field = $("#rad-day");
+    if (weekEl) weekEl.textContent = when.weekday;
+    if (dayEl) dayEl.textContent = when.label;
+    if (slider && Number(slider.value) !== state.frame) slider.value = String(state.frame);
+    if (field && field.value !== when.iso) field.value = when.iso;
+    const play = $("#play");
+    if (play) play.textContent = state.playing ? "Pause" : "Abspielen";
+    document.querySelectorAll("[data-speed]").forEach((btn) => {
+      btn.classList.toggle("is-on", Number(btn.dataset.speed) === state.speed);
+    });
+    const month = Number((iso || "").slice(5, 7)) || (new Date().getMonth() + 1);
+    pts.forEach((pt) => {
+      const row = document.querySelector(`.rad-row[data-t="${pt.t}"]`);
+      if (!row) return;
+      const dot = row.querySelector(".rad-dot");
+      const quadEl = row.querySelector(".rad-quad");
+      const hint = row.querySelector(".season-hint");
+      if (dot) dot.style.background = pt.color;
+      if (quadEl) quadEl.textContent = pt.quad;
+      const cell = state.season && state.season.sectors && state.season.sectors[pt.t] && state.season.sectors[pt.t].months[String(month)];
+      if (hint) hint.textContent = cell ? seasonLine(cell, month) : "";
+    });
+    window.__mtsRad = {
+      title: "Das Sektor-Rad",
+      subtitle: when.label,
+      foot: `Daten: Yahoo Finance, SPDR-Sektor-ETFs · Stand ${sessionDate(model.dates[model.dates.length - 1]).label} · RRG-Näherung`,
+      points: pts,
+    };
+  }
+
+  function stopTimer() {
+    if (state.timer) {
+      clearInterval(state.timer);
+      state.timer = 0;
+    }
+  }
+
+  function startTimer() {
+    stopTimer();
+    const ms = state.speed === 4 ? 50 : 200;
+    state.timer = setInterval(() => {
+      if (!state.model) return;
+      state.frame = (state.frame + 1) % state.model.frames.length;
+      paint();
+    }, ms);
+  }
+
+  function setPlaying(on) {
+    state.playing = on;
+    if (on) startTimer();
+    else stopTimer();
+    const play = $("#play");
+    if (play) play.textContent = state.playing ? "Pause" : "Abspielen";
+  }
+
+  function snapToDate(iso) {
+    const dates = state.model.dates;
+    let idx = -1;
+    for (let i = 0; i < dates.length; i++) {
+      if (dates[i] <= iso) idx = i;
+    }
+    if (idx < 0) idx = 0;
+    state.frame = idx;
+  }
+
+  function renderShell() {
+    const model = state.model;
+    const season = state.season;
+    const end = model.frames[state.frame];
+    const iso = model.dates[end];
+    const when = sessionDate(iso);
+    const last = sessionDate(model.dates[model.dates.length - 1]);
+    const first = sessionDate(model.dates[0]);
+    const pts = pointsAt(model, end);
+    const month = Number((iso || "").slice(5, 7)) || (new Date().getMonth() + 1);
     const rows = pts.map((pt) => {
       const cell = season && season.sectors && season.sectors[pt.t] && season.sectors[pt.t].months[String(month)];
-      return `<a class="rad-row" href="sektor.html?ix=SPX&s=${encodeURIComponent(pt.name)}">
+      return `<a class="rad-row" data-t="${escapeHtml(pt.t)}" href="sektor.html?ix=SPX&s=${encodeURIComponent(pt.name)}">
         <span class="rad-dot" style="background:${pt.color}"></span>
         <span><strong>${escapeHtml(pt.t)}</strong> ${escapeHtml(pt.name)}<br><span class="season-hint">${cell ? escapeHtml(seasonLine(cell, month)) : ""}</span></span>
-        <span class="muted">${escapeHtml(pt.quad)}</span>
+        <span class="muted rad-quad">${escapeHtml(pt.quad)}</span>
       </a>`;
     }).join("");
     $("#app").innerHTML = `
+      <div class="rad-stage">
+        <canvas id="wheel" class="wheel" width="640" height="640" aria-label="Sektor-Rad"></canvas>
+        <div class="rad-clock">
+          <p class="rad-weekday" id="rad-weekday">${escapeHtml(when.weekday)}</p>
+          <p class="rad-date" id="rad-date">${escapeHtml(when.label)}</p>
+          <label class="note rad-date-field">Datum
+            <input id="rad-day" type="date" value="${escapeHtml(when.iso)}" min="${escapeHtml(first.iso)}" max="${escapeHtml(last.iso)}">
+          </label>
+          <label class="note">Sitzung
+            <input id="day" type="range" min="0" max="${model.frames.length - 1}" value="${state.frame}">
+          </label>
+          <div class="rad-controls">
+            <button type="button" class="chip" id="play">${state.playing ? "Pause" : "Abspielen"}</button>
+            <button type="button" class="chip${state.speed === 1 ? " is-on" : ""}" data-speed="1">1×</button>
+            <button type="button" class="chip${state.speed === 4 ? " is-on" : ""}" data-speed="4">4×</button>
+          </div>
+        </div>
+      </div>
       <div class="tool-row">
-        <button type="button" class="chip" id="play">${state.playing ? "Pause" : "Abspielen"}</button>
-        <span class="kicker" id="tag">TAG ${escapeHtml(tag(iso))}</span>
         <a class="chip" href="saison.html">Saison-Statistik</a>
         <button type="button" class="chip" data-export="1">TikTok-Bild speichern</button>
       </div>
-      <label class="note">Sitzung
-        <input id="day" type="range" min="0" max="${model.frames.length - 1}" value="${state.frame}">
-      </label>
-      <canvas id="wheel" class="wheel" width="640" height="640" aria-label="Sektor-Rad"></canvas>
-      <p class="note">Daten: Yahoo Finance, SPDR-Sektor-ETFs · Stand ${escapeHtml(tag(model.dates[model.dates.length - 1]))} · RRG-Näherung. Nur S&amp;P 500. Historischer Durchschnitt – keine Prognose.</p>
+      <p class="note">Daten: Yahoo Finance, SPDR-Sektor-ETFs · Stand ${escapeHtml(last.label)} · RRG-Näherung. Nur S&amp;P 500. Historischer Durchschnitt – keine Prognose.</p>
       <div class="rad-legend">
         <span style="color:#3ddc6a">Führend</span>
         <span style="color:#f0c14a">Schwächelt</span>
@@ -205,36 +307,27 @@
         <span style="color:#2ec8c4">Erholt sich</span>
       </div>
       <div class="rad-list">${rows}</div>`;
-    const canvas = $("#wheel");
-    drawLive(canvas, model);
-    window.__mtsRad = {
-      title: "Das Sektor-Rad",
-      subtitle: `Tag ${tag(iso)}`,
-      foot: `Daten: Yahoo Finance, SPDR-Sektor-ETFs · Stand ${tag(model.dates[model.dates.length - 1])} · RRG-Näherung`,
-      points: pts,
-    };
-    $("#play").addEventListener("click", () => {
-      state.playing = !state.playing;
-      if (state.playing) {
-        if (state.frame >= model.frames.length - 1) state.frame = 0;
-        state.timer = setInterval(() => {
-          state.frame = Math.min(model.frames.length - 1, state.frame + 1);
-          if (state.frame >= model.frames.length - 1) state.playing = false;
-          render(model, season);
-          if (!state.playing) clearInterval(state.timer);
-        }, 450);
-      } else {
-        clearInterval(state.timer);
-        render(model, season);
-      }
+    paint();
+    $("#play").addEventListener("click", () => setPlaying(!state.playing));
+    document.querySelectorAll("[data-speed]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.speed = Number(btn.dataset.speed) === 4 ? 4 : 1;
+        if (state.playing) startTimer();
+        paint();
+      });
     });
     $("#day").addEventListener("input", (e) => {
-      state.playing = false;
-      clearInterval(state.timer);
       state.frame = Number(e.target.value);
-      render(model, season);
+      paint();
     });
-    canvas.addEventListener("click", (e) => {
+    $("#rad-day").addEventListener("change", (e) => {
+      const value = e.target.value;
+      if (!value) return;
+      snapToDate(value);
+      paint();
+    });
+    $("#wheel").addEventListener("click", (e) => {
+      const canvas = e.currentTarget;
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -245,6 +338,7 @@
       });
       if (best) location.href = `sektor.html?ix=SPX&s=${encodeURIComponent(best.hit.name)}`;
     });
+    state.ready = true;
   }
 
   document.addEventListener("click", async (e) => {
@@ -261,21 +355,27 @@
 
   async function start() {
     try {
-      const [etf, sectors, season] = await Promise.all([
-        loadJSON("data/history/etf.json"),
+      const [rad, etf, sectors, season] = await Promise.all([
+        loadJSON("data/history/rad.json").catch(() => null),
+        loadJSON("data/history/etf.json").catch(() => null),
         loadJSON("data/sectors.json").catch(() => null),
         loadJSON("data/seasonality.json").catch(() => null),
       ]);
       if (sectors) window.MTS.setStand(sectors);
-      const model = build(applyLive(etf, sectors));
-      if (!model.frames.length) throw new Error("keine Punkte");
-      const want = model.frames.findIndex((i) => model.dates[i] === "2026-11-04");
-      state.frame = want >= 0 ? want : Math.floor((model.frames.length - 1) / 2);
-      render(model, season);
+      let model = null;
+      if (rad && rad.dates && rad.r) model = fromPrecomputed(rad);
+      else if (etf) model = fromCloses(etf);
+      if (!model || !model.frames.length) throw new Error("keine Punkte");
+      state.model = model;
+      state.season = season;
+      state.frame = model.frames.length - 1;
+      renderShell();
     } catch (err) {
       console.error(err);
       $("#app").innerHTML = `<p class="error">Das Sektor-Rad konnte nicht berechnet werden.</p>`;
     }
   }
+  document.addEventListener("mts-theme", () => { if (state.ready) paint(); });
+  window.addEventListener("resize", () => { if (state.ready) paint(); });
   start();
 })();
