@@ -789,9 +789,13 @@ a.chip { text-decoration: none; display: inline-block; }
   -webkit-overflow-scrolling: touch;
   margin-bottom: 8px;
 }
+.page.is-scanner .check-heading { margin-bottom: 8px; }
+.page.is-scanner .check-heading h2 { font-size: 1.02rem; }
 .page.is-scanner .check-card { padding: 6px 10px; }
 .page.is-scanner .check-px,
 .page.is-scanner .check-meta { display: none; }
+.page.is-scanner .check-flags { margin-top: 4px; }
+.page.is-scanner .check-legal { margin-top: 8px; }
 .page.is-scanner .main {
   display: flex;
   flex-direction: column;
@@ -1253,13 +1257,47 @@ table.sais tbody tr { cursor: pointer; }
   .rad-date { font-size: 3rem; }
 }
 
-.check-block { margin: 0 0 14px; }
+.check-block {
+  margin: 0 0 16px;
+  padding: 12px 12px 10px;
+  border: 2px solid #86FB02;
+  border-radius: 16px;
+  background: #15171a;
+}
 .check-block[hidden] { display: none; }
+.check-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+.check-heading h2 { margin: 0; font-size: 1.15rem; }
+.check-sub { margin: 2px 0 0; font-size: 0.86rem; color: var(--fg); }
+.check-stand { margin: 2px 0 0; font-size: 0.72rem; color: var(--muted); }
+.check-info-btn {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #86FB02;
+  background: transparent;
+  color: #86FB02;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.check-info-btn[aria-expanded="true"] {
+  background: color-mix(in srgb, #86FB02 18%, #15171a);
+}
+.check-info { margin: 0 0 10px; }
+.check-info p { margin: 0; font-size: 0.8rem; line-height: 1.45; color: var(--sub); }
 .check-list { display: flex; flex-direction: column; gap: 8px; }
 .check-card {
   display: block;
   background: var(--card);
-  border-radius: var(--radius);
+  border-radius: 12px;
   padding: 10px 12px;
   text-decoration: none;
   color: inherit;
@@ -1268,17 +1306,39 @@ table.sais tbody tr { cursor: pointer; }
 .check-head .kicker { display: block; margin-top: 2px; }
 .check-pct { font-weight: 800; white-space: nowrap; }
 .check-px { margin: 2px 0 0; font-size: 0.8rem; color: var(--sub); }
-.check-flags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.check-flags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
 .check-flag {
   font-size: 0.68rem;
   font-weight: 700;
   border-radius: 999px;
   padding: 0.18rem 0.55rem;
-  background: color-mix(in srgb, var(--gold) 18%, var(--card));
+  background: color-mix(in srgb, #86FB02 16%, var(--card));
   color: var(--fg);
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, #86FB02 40%, var(--line));
 }
+.check-flag.is-empty {
+  background: var(--chip);
+  color: var(--muted);
+  border-color: var(--line);
+  font-weight: 600;
+}
+.check-legal { margin: 10px 0 0; }
 .check-meta { margin: 4px 0 0; font-size: 0.75rem; color: var(--sub); }
+:root[data-theme="light"] .check-block {
+  border-color: var(--lime);
+  background: var(--card);
+}
+:root[data-theme="light"] .check-info-btn {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+:root[data-theme="light"] .check-info-btn[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--lime) 16%, var(--card));
+}
+:root[data-theme="light"] .check-flag {
+  background: color-mix(in srgb, var(--lime) 16%, var(--card));
+  border-color: color-mix(in srgb, var(--lime) 40%, var(--line));
+}
 
 .ext-mark {
   display: inline-block;
