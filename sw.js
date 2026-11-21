@@ -1,5 +1,5 @@
 /* HTML, CSS and JS are cache-first. Quote and history JSON stay network-only. */
-const SHELL = "mts-shell-6";
+const SHELL = "mts-shell-7";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -17,7 +17,9 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
+  // Never cache third-party chart hosts (TradingView widget / iframes).
   if (url.origin !== self.location.origin) return;
+  if (/(^|\.)tradingview\.com$/i.test(url.hostname)) return;
   if (url.pathname.includes("/data/")) {
     event.respondWith(fetch(req, { cache: "no-store" }));
     return;

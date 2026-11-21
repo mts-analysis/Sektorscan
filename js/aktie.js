@@ -93,7 +93,7 @@
     if (!rows.length) return `<p class="note">k. A.</p>`;
     return `<ul class="news-list">${rows.map((n) => {
       const meta = [n.src, n.d ? deDate(n.d) : ""].filter(Boolean).join(" · ");
-      return `<li><a href="${escapeHtml(n.u)}" target="_blank" rel="noopener noreferrer">${escapeHtml(n.h)}</a>${meta ? `<span class="muted">${escapeHtml(meta)}</span>` : ""}</li>`;
+      return `<li><a href="${escapeHtml(n.u)}" target="_blank" rel="noopener noreferrer">${escapeHtml(n.h)}<span class="ext-mark" aria-label="externer Link">↗</span></a>${meta ? `<span class="muted">${escapeHtml(meta)}</span>` : ""}</li>`;
     }).join("")}</ul>`;
   }
 
@@ -101,7 +101,7 @@
     if (!url || !/^https:\/\//i.test(url)) return "k. A.";
     let label = url.replace(/^https:\/\//i, "").replace(/\/$/, "");
     if (label.length > 42) label = `${label.slice(0, 40)}…`;
-    return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+    return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}<span class="ext-mark" aria-label="externer Link">↗</span></a>`;
   }
 
   function segmentsLine(items) {
@@ -155,7 +155,7 @@
         <div class="chart-toggle">
           <button type="button" class="chip${state.range === "30" ? " is-on" : ""}" data-range="30">30 Tage</button>
           <button type="button" class="chip${state.range === "1y" ? " is-on" : ""}" data-range="1y">1 Jahr</button>
-          <a class="chip" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tv)}" target="_blank" rel="noopener noreferrer">TradingView</a>
+          <a class="chip" href="chart.html?sym=${encodeURIComponent(tv)}&t=${encodeURIComponent(r.t)}">TradingView</a>
         </div>
         ${values.length > 1 ? sparkSVG(values, col, 640, 180) : `<p class="empty">Kein Verlauf verfügbar.</p>`}
         <p class="note">${note}</p>

@@ -1279,3 +1279,52 @@ table.sais tbody tr { cursor: pointer; }
   border: 1px solid var(--line);
 }
 .check-meta { margin: 4px 0 0; font-size: 0.75rem; color: var(--sub); }
+
+.ext-mark {
+  display: inline-block;
+  margin-left: 0.25em;
+  font-weight: 700;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+html:has(.page.is-chart),
+body:has(.page.is-chart) {
+  height: 100%;
+  overflow: hidden;
+  background: #15171a;
+}
+.page.is-chart {
+  max-width: none;
+  height: 100dvh;
+  overflow: hidden;
+  padding: calc(8px + var(--safe-t)) var(--pad) calc(8px + var(--safe-b));
+  background: #15171a;
+  color: #eceff1;
+}
+.chart-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  flex: 0 0 auto;
+  margin: 0 0 8px;
+}
+.chart-bar .header-text { flex: 1 1 auto; min-width: 8rem; }
+.chart-bar h1 { margin: 0; font-size: 1.15rem; }
+.tv-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #131722;
+  touch-action: manipulation;
+}
+#tv-chart {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.page.is-chart .chart-legal { flex: 0 0 auto; margin: 6px 0 0; }

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#15171A">
+  <meta name="description" content="MTS Sektor-Scanner: Chart. Keine Anlageberatung.">
+  <title>MTS Chart</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/logo_T_white.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="MTS Scanner">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="page is-chart">
+    <header class="chart-bar">
+      <button type="button" class="back-btn" id="chart-back">Zurück</button>
+      <div class="header-text">
+        <h1 id="chart-title">Chart</h1>
+        <p class="handle" id="chart-sym"></p>
+      </div>
+      <a class="chip" id="tv-fallback" href="https://www.tradingview.com/chart/" target="_blank" rel="noopener noreferrer">In TradingView öffnen <span class="ext-mark" aria-label="externer Link">↗</span></a>
+    </header>
+    <div class="tv-wrap" id="tv-wrap">
+      <div id="tv-chart"></div>
+    </div>
+    <p class="note chart-legal">Keine Anlageberatung.</p>
+  </div>
+  <script src="js/chart.js" defer></script>
+</body>
+</html>
