@@ -107,9 +107,7 @@
         const x = model.series[t].ratio[k];
         const y = model.series[t].mom[k];
         if (x == null || y == null) continue;
-        const nx = Math.max(-1.05, Math.min(1.05, (x - 100) / model.max));
-        const ny = Math.max(-1.05, Math.min(1.05, (y - 100) / model.max));
-        tail.push([nx, ny, x, y]);
+        tail.push([(x - 100) / model.max, (y - 100) / model.max, x, y]);
       }
       const last = tail[tail.length - 1] || [0, 0, 100, 100];
       return {
@@ -136,13 +134,28 @@
     const cx = css / 2;
     const cy = css / 2;
     const R = css * 0.38;
+    const ringWidth = Math.max(10, css * 0.045);
+    const innerR = R - ringWidth / 2;
+    const dotR = 8;
+    const maxR = Math.max(0, innerR - dotR);
+    const map = (nx, ny) => {
+      let px = nx * R;
+      let py = ny * R;
+      const dist = Math.hypot(px, py);
+      if (dist > maxR && dist > 0) {
+        const s = maxR / dist;
+        px *= s;
+        py *= s;
+      }
+      return [cx + px, cy - py];
+    };
     const rings = [
       ["#2ec8c4", Math.PI, Math.PI * 1.5],
       ["#3ddc6a", Math.PI * 1.5, Math.PI * 2],
       ["#f0c14a", 0, Math.PI * 0.5],
       ["#ff4b5c", Math.PI * 0.5, Math.PI],
     ];
-    ctx.lineWidth = Math.max(10, css * 0.045);
+    ctx.lineWidth = ringWidth;
     rings.forEach(([color, a0, a1]) => {
       ctx.beginPath();
       ctx.strokeStyle = color;
@@ -172,14 +185,15 @@
           ctx.strokeStyle = pt.color;
           ctx.globalAlpha = 0.08 + 0.62 * t;
           ctx.lineWidth = 1.2 + 2.8 * t;
-          ctx.moveTo(cx + a[0] * R, cy - a[1] * R);
-          ctx.lineTo(cx + b[0] * R, cy - b[1] * R);
+          const axy = map(a[0], a[1]);
+          const bxy = map(b[0], b[1]);
+          ctx.moveTo(axy[0], axy[1]);
+          ctx.lineTo(bxy[0], bxy[1]);
           ctx.stroke();
         }
         ctx.globalAlpha = 1;
       }
-      const x = cx + pt.x * R;
-      const y = cy - pt.y * R;
+      const [x, y] = map(pt.x, pt.y);
       ctx.save();
       ctx.shadowColor = pt.color;
       ctx.shadowBlur = 16;
@@ -197,7 +211,28 @@
       ctx.stroke();
       ctx.fillStyle = document.documentElement.dataset.theme === "light" ? "#1a1c1f" : "#eceff1";
       ctx.font = "800 12px 'Be Vietnam Pro', sans-serif";
-      ctx.fillText(pt.t, x + 10, y - 8);
+      const label = pt.t;
+      const tw = ctx.measureText(label).width;
+      const th = 12;
+      const labelLimit = Math.max(0, innerR - 2);
+      const boxOut = (lx, ly) => {
+        const corners = [[lx, ly], [lx + tw, ly], [lx, ly - th], [lx + tw, ly - th]];
+        return corners.some(([px, py]) => Math.hypot(px - cx, py - cy) > labelLimit);
+      };
+      let lx = x + 10;
+      let ly = y - 8;
+      if (boxOut(lx, ly)) {
+        const dist = Math.hypot(x - cx, y - cy) || 1;
+        const ux = (cx - x) / dist;
+        const uy = (cy - y) / dist;
+        lx = x + ux * 12 - tw / 2;
+        ly = y + uy * 12 + th / 2;
+        for (let i = 0; i < 8 && boxOut(lx, ly); i++) {
+          lx += (cx - (lx + tw / 2)) * 0.3;
+          ly += (cy - (ly - th / 2)) * 0.3;
+        }
+      }
+      ctx.fillText(label, lx, ly);
       state.hits.push({ x, y, name: pt.name, t: pt.t });
     });
     return pts;

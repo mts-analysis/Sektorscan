@@ -1235,10 +1235,10 @@ table.sais tbody tr { cursor: pointer; }
 .rad-controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 @media (min-width: 800px) {
   .rad-stage {
-    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-columns: minmax(0, 640px) 240px;
+    justify-content: center;
     align-items: center;
   }
-  .wheel { width: 100%; margin: 0; }
   .rad-date { font-size: 3rem; }
 }
 
