@@ -1001,6 +1001,7 @@ a.chip { text-decoration: none; display: inline-block; }
     max-height: 100%;
     margin-bottom: 0;
     padding-right: 12px;
+    padding-bottom: 18px;
     border-right: 1px solid var(--line);
     overflow: visible;
     position: relative;
