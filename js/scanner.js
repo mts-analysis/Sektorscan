@@ -32,9 +32,13 @@
     winEnd: -1,
     qTimer: 0,
     rets: null,
-    filtersOpen: window.matchMedia("(min-width: 768px) and (min-height: 700px)").matches,
+    filtersOpen: window.matchMedia("(orientation: landscape) and (min-width: 900px)").matches,
   };
-  const ROW_H = 52;
+  function rowHeight() {
+    const page = document.querySelector(".page.is-scanner");
+    const n = parseFloat(page ? getComputedStyle(page).getPropertyValue("--scan-row") : "");
+    return Number.isFinite(n) && n >= 36 ? n : 52;
+  }
 
   function applyParams() {
     const p = params();
@@ -195,6 +199,7 @@
           <button type="button" class="chip${state.filtersOpen ? " is-on" : ""}" data-filter-toggle aria-expanded="${state.filtersOpen ? "true" : "false"}">Filter${filterCount() ? ` ${filterCount()}` : ""}</button>
           <button type="button" class="linkish" data-filter-reset>Zurücksetzen</button>
         </div>
+        <div class="scanner-tools">
         <div class="filter-sheet" id="filter-sheet"${state.filtersOpen ? "" : " hidden"}>
         <div class="tool-row">${window.MTS.tfSwitcher()}</div>
         <div class="chip-row" id="filter-chips">
@@ -250,6 +255,7 @@
              <button type="button" class="linkish" data-clear="mc">Zurücksetzen</button>
            </div>`)}
         <p class="note">Landeswährung, ca. 15 Min. verzögert. Börsenwert in USD.</p>
+        </div>
         </div>
       </section>
       <div class="table-shell">
@@ -312,7 +318,7 @@
         ${headCell("c", "%", true)}
         ${headCell("rv", "Rel. Volumen", true)}
       </div>
-      <div class="vspacer" id="vspacer" style="height:${rows.length * ROW_H}px">
+      <div class="vspacer" id="vspacer" style="height:${rows.length * rowHeight()}px">
         <div class="vwin" id="vwin"></div>
       </div>
       <p class="empty" id="vempty"${empty ? "" : " hidden"}>${escapeHtml(emptyText)}</p>`;
@@ -322,9 +328,14 @@
       hc.textContent = `${rows.length} von ${total} Treffern${scope}`;
     }
     card.scrollTop = 0;
+    state.winStart = -1;
+    state.winEnd = -1;
+    state.lastCardH = -1;
+    ensureTableObserver();
     paintWindow();
     requestAnimationFrame(() => {
       state.winStart = -1;
+      state.winEnd = -1;
       paintWindow();
     });
   }
@@ -336,15 +347,83 @@
     if (!card || !win || !spacer) return;
     const total = state.viewRows.length;
     const top = card.scrollTop;
-    const view = card.clientHeight || 640;
-    const start = Math.max(0, Math.floor(top / ROW_H) - 6);
-    const end = Math.min(total, Math.ceil((top + view) / ROW_H) + 8);
+    const view = card.clientHeight;
+    const rowH = rowHeight();
+    if (rowH !== state.rowH) {
+      state.rowH = rowH;
+      state.winStart = -1;
+      state.winEnd = -1;
+    }
+    if (view < 40) {
+      state.winStart = -1;
+      state.winEnd = -1;
+      if ((state.paintTries || 0) < 10) {
+        state.paintTries = (state.paintTries || 0) + 1;
+        requestAnimationFrame(() => paintWindow());
+      }
+      return;
+    }
+    state.paintTries = 0;
+    const start = Math.max(0, Math.floor(top / rowH) - 6);
+    const end = Math.min(total, Math.ceil((top + view) / rowH) + 8);
     if (start === state.winStart && end === state.winEnd) return;
     state.winStart = start;
     state.winEnd = end;
-    spacer.style.height = `${total * ROW_H}px`;
-    win.style.transform = `translateY(${start * ROW_H}px)`;
+    spacer.style.height = `${total * rowH}px`;
+    win.style.transform = `translateY(${start * rowH}px)`;
     win.innerHTML = state.viewRows.slice(start, end).map(rowHtml).join("");
+  }
+
+  function invalidateWindow() {
+    state.winStart = -1;
+    state.winEnd = -1;
+    state.lastCardH = -1;
+    paintWindow();
+  }
+
+  function ensureTableObserver() {
+    const card = $("#table-card");
+    if (!card || typeof ResizeObserver !== "function") return;
+    if (!state.resizeObs) {
+      state.resizeObs = new ResizeObserver(() => {
+        const live = $("#table-card");
+        if (!live) return;
+        const h = Math.round(live.clientHeight);
+        if (h === state.lastCardH && state.winStart >= 0) return;
+        state.lastCardH = h;
+        state.winStart = -1;
+        state.winEnd = -1;
+        paintWindow();
+      });
+    }
+    if (state.observedCard !== card) {
+      state.resizeObs.disconnect();
+      state.resizeObs.observe(card);
+      state.observedCard = card;
+      state.lastCardH = -1;
+    }
+  }
+
+  function placeSuggest() {
+    const box = $("#suggest");
+    const input = $("#q");
+    if (!box || !input) return;
+    const split = window.matchMedia("(orientation: landscape) and (min-width: 900px)").matches;
+    if (box.hidden || !split) {
+      box.classList.remove("is-fixed");
+      box.style.left = "";
+      box.style.top = "";
+      box.style.width = "";
+      box.style.maxHeight = "";
+      return;
+    }
+    const rect = input.getBoundingClientRect();
+    const room = window.innerHeight - rect.bottom - 78;
+    box.classList.add("is-fixed");
+    box.style.left = `${Math.round(rect.left)}px`;
+    box.style.top = `${Math.round(rect.bottom + 4)}px`;
+    box.style.width = `${Math.round(rect.width)}px`;
+    box.style.maxHeight = `${Math.max(96, Math.min(256, room))}px`;
   }
 
   function showSuggest(query) {
@@ -354,6 +433,7 @@
     if (!query.trim() || !hits.length) {
       box.hidden = true;
       box.innerHTML = "";
+      placeSuggest();
       return;
     }
     box.hidden = false;
@@ -365,6 +445,7 @@
         <span class="muted">${escapeHtml(r.t)}${ix ? " · " + escapeHtml(ix) : ""}</span>
       </button>`;
     }).join("");
+    placeSuggest();
   }
 
   function refresh() {
@@ -405,7 +486,34 @@
         document.querySelector(".page")?.classList.toggle("is-scrolled", e.target.scrollTop > 24);
         paintWindow();
       }
+      if (e.target && e.target.classList && e.target.classList.contains("scanner-tools")) {
+        placeSuggest();
+      }
     }, true);
+    let resizeTimer = 0;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        invalidateWindow();
+        placeSuggest();
+      }, 60);
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", () => {
+      setTimeout(() => {
+        invalidateWindow();
+        placeSuggest();
+      }, 160);
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onResize);
+    }
+    document.addEventListener("mts-top5", () => {
+      requestAnimationFrame(() => {
+        invalidateWindow();
+        requestAnimationFrame(invalidateWindow);
+      });
+    });
     $("#app").addEventListener("click", (e) => {
       if (!e.target.closest(".search-wrap")) showSuggest("");
       const chipBtn = e.target.closest("#chip-row button, #filter-sheet button, [data-filter-toggle], [data-filter-reset]");

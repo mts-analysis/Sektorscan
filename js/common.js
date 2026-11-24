@@ -32,10 +32,6 @@
       if (p === null || p === undefined || Number.isNaN(Number(p))) return "var(--muted)";
       return C.mixPct(p, maxAbs, document.documentElement.dataset.theme === "light");
     },
-    cardColor(p, maxAbs = 3.5) {
-      if (p === null || p === undefined || Number.isNaN(Number(p))) return "#9aa3ad";
-      return C.mixPct(p, maxAbs, false);
-    },
     tint(color, amount, bg) {
       const light = document.documentElement.dataset.theme === "light";
       const base = bg || (light ? [255, 255, 255] : [38, 42, 48]);
@@ -328,9 +324,6 @@
       return `<div class="chip-row tf-row" role="group" aria-label="Zeitraum">${[1, 5, 20].map((n) =>
         `<button type="button" class="chip${cur === n ? " is-on" : ""}" data-tf="${n}">${C.periodName(n)}</button>`
       ).join("")}</div>`;
-    },
-    exportButton() {
-      return `<button type="button" class="chip" data-export="1">TikTok-Bild speichern</button>`;
     },
     async returns() {
       if (!C._returnsPromise) {

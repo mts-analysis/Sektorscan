@@ -95,7 +95,7 @@
       <p class="note">Der Wiederholer-Zähler läuft nur für den S&P 500.</p>`;
     $("#app").innerHTML = `
       ${window.MTS.indexSwitch(ix)}
-      <div class="tool-row">${window.MTS.tfSwitcher()}${window.MTS.exportButton()}<a class="chip" href="wiederholer.html?ix=${encodeURIComponent(ix)}">Wiederholer-Zählung</a></div>
+      <div class="tool-row">${window.MTS.tfSwitcher()}<a class="chip" href="wiederholer.html?ix=${encodeURIComponent(ix)}">Wiederholer-Zählung</a></div>
       <div class="tf-title-row">
         <p class="kicker">${tf === 1 ? "Tages-Top und -Flop" : window.MTS.periodName(tf)}  ·  ${escapeHtml(block.name || window.MTS.indexName(ix))}</p>
         <p class="muted">${tf === 1 ? "Letzte Sitzung" : "Handelstage"} ${escapeHtml(sess)}${escapeHtml(ccy)}</p>
@@ -106,12 +106,6 @@
       </div>
       ${wiederholer}
     `;
-    window.__mtsTop = {
-      title: `Top / Flop · ${block.name || window.MTS.indexName(ix)}`,
-      subtitle: `${window.MTS.periodName(tf)} · ${sess}`,
-      top: (top || []).map((r) => ({ t: r.t, n: r.n, pct: window.MTS.dePct(r.c), color: window.MTS.cardColor(r.c) })),
-      flop: (flop || []).map((r) => ({ t: r.t, n: r.n, pct: window.MTS.dePct(r.c), color: window.MTS.cardColor(r.c) })),
-    };
   }
 
   let latest = null;
@@ -145,16 +139,5 @@
       pack = e.detail.data;
       if (latest) render(latest);
     }
-  });
-  document.addEventListener("click", async (e) => {
-    if (!e.target.closest("[data-export]") || !window.__mtsTop) return;
-    const btn = e.target.closest("[data-export]");
-    btn.disabled = true;
-    try {
-      await window.MTS.saveCard({ kind: "topflop", ...window.__mtsTop, filename: "mts-topflop.png" });
-    } catch (err) {
-      console.error(err);
-    }
-    btn.disabled = false;
   });
 })();

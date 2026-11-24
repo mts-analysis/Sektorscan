@@ -1,9 +1,8 @@
 (() => {
   "use strict";
-  const { $, dePct, pctColor, escapeHtml, setStand, loadJSON, indexSwitch, pageIndex, syncTabs, tfSwitcher, exportButton, timeframe, periodName, returns, SECTORS, INDEX_EXCHANGE } = window.MTS;
+  const { $, dePct, pctColor, escapeHtml, setStand, loadJSON, indexSwitch, pageIndex, syncTabs, tfSwitcher, timeframe, periodName, returns, SECTORS, INDEX_EXCHANGE } = window.MTS;
   let stocks = null;
   let pack = null;
-  let lastTiles = [];
 
   function squarify(items, x, y, w, h) {
     if (!items.length || w <= 0 || h <= 0) return [];
@@ -61,7 +60,6 @@
       return { name, members, mc, pct: sectorPct(ix, name) };
     }).filter((g) => g.members.length);
     const total = groups.reduce((sum, g) => sum + g.mc, 0) || 1;
-    lastTiles = [];
     let yCursor = 0;
     const html = groups.map((g) => {
       const height = Math.max(128, Math.round((g.mc / total) * 1100));
@@ -70,17 +68,6 @@
       const tiles = rects.map((rect) => {
         const pad = 0.6;
         const label = window.MTS.shortName(rect.item.n, rect.item.t);
-        lastTiles.push({
-          t: rect.item.t,
-          n: label,
-          pct: dePct(rect.item.pct),
-          pctNum: rect.item.pct,
-          color: pctColor(rect.item.pct),
-          x: (rect.x + pad) / 100,
-          y: yCursor + ((rect.y + pad) / 100) * frac,
-          w: Math.max(0, (rect.w - pad * 2) / 100),
-          h: Math.max(0, ((rect.h - pad * 2) / 100) * frac),
-        });
         const namePx = Math.max(11, Math.min(18, Math.round(Math.min(rect.w, rect.h * 1.3) * 0.22 + 9)));
         const showName = rect.w >= 9 && rect.h >= 11;
         const showTicker = showName && rect.item.t !== label && rect.w >= 18 && rect.h >= 22;
@@ -97,29 +84,10 @@
     }).join("");
     $("#app").innerHTML = `
       ${indexSwitch(ix)}
-      <div class="tool-row">${tfSwitcher()}${exportButton()}</div>
+      <div class="tool-row">${tfSwitcher()}</div>
       <p class="note">${periodName(tf)} · Fläche nach Börsenwert</p>
       ${html || `<p class="empty">Für diesen Index liegen keine Flächen vor.</p>`}`;
-    window.__mtsHeat = { ix, tf, tiles: lastTiles, title: `Heatmap · ${window.MTS.indexName(ix)}` };
   }
-
-  document.addEventListener("click", async (e) => {
-    if (!e.target.closest("[data-export]") || !window.__mtsHeat) return;
-    const btn = e.target.closest("[data-export]");
-    btn.disabled = true;
-    try {
-      await window.MTS.saveCard({
-        kind: "heatmap",
-        title: window.__mtsHeat.title,
-        subtitle: `${periodName(window.__mtsHeat.tf)} · ${new Date().toLocaleDateString("de-DE")}`,
-        tiles: (window.__mtsHeat.tiles || []).map((tile) => ({ ...tile, color: window.MTS.cardColor(tile.pctNum) })),
-        filename: "mts-heatmap.png",
-      });
-    } catch (err) {
-      console.error(err);
-    }
-    btn.disabled = false;
-  });
 
   document.addEventListener("mts-theme", () => { if (stocks) render(); });
   document.addEventListener("mts-fresh", (e) => {

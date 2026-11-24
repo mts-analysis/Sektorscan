@@ -272,12 +272,6 @@
       const cell = state.season && state.season.sectors && state.season.sectors[pt.t] && state.season.sectors[pt.t].months[String(month)];
       if (hint) hint.textContent = cell ? seasonLine(cell, month) : "";
     });
-    window.__mtsRad = {
-      title: "Das Sektor-Rad",
-      subtitle: when.label,
-      foot: `Daten: Yahoo Finance, SPDR-Sektor-ETFs · Stand ${sessionDate(model.dates[model.dates.length - 1]).label} · RRG-Näherung`,
-      points: pts,
-    };
   }
 
   function stopTimer() {
@@ -354,7 +348,6 @@
       </div>
       <div class="tool-row">
         <a class="chip" href="saison.html">Saison-Statistik</a>
-        <button type="button" class="chip" data-export="1">TikTok-Bild speichern</button>
       </div>
       <p class="note">Daten: Yahoo Finance, SPDR-Sektor-ETFs · Stand ${escapeHtml(last.label)} · RRG-Näherung. Nur S&amp;P 500. Historischer Durchschnitt – keine Prognose.</p>
       <div class="rad-legend">
@@ -397,18 +390,6 @@
     });
     state.ready = true;
   }
-
-  document.addEventListener("click", async (e) => {
-    if (!e.target.closest("[data-export]") || !window.__mtsRad) return;
-    const btn = e.target.closest("[data-export]");
-    btn.disabled = true;
-    try {
-      await window.MTS.saveCard({ kind: "rad", ...window.__mtsRad, filename: "mts-rad.png" });
-    } catch (err) {
-      console.error(err);
-    }
-    btn.disabled = false;
-  });
 
   async function start() {
     try {
