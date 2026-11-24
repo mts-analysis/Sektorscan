@@ -223,7 +223,7 @@
     const switcher = window.MTS ? window.MTS.indexSwitch(ix) : "";
     const tf = window.MTS ? window.MTS.timeframe() : 1;
     const pack = tf === 1 || !window.MTS ? null : await window.MTS.returns();
-    const tools = window.MTS ? `<div class="tool-row">${window.MTS.tfSwitcher()}${window.MTS.exportButton()}<a class="chip" href="woche.html?ix=${encodeURIComponent(ix)}">Wochen-Rückblick</a></div>` : "";
+    const tools = window.MTS ? `<div class="tool-row">${window.MTS.tfSwitcher()}<a class="chip" href="woche.html?ix=${encodeURIComponent(ix)}">Wochen-Rückblick</a></div>` : "";
     if (window.MTS) window.MTS.syncTabs(ix);
     if (ix !== "SPX" || tf !== 1) {
       const market = (data.markets || []).find((m) => m.id === ix) || (ix === "SPX" ? {
@@ -244,7 +244,6 @@
         })).filter((s) => s.pct != null);
       }
       renderMarket(market, switcher, data, tools, tf, pack);
-      rememberCard(ix, tf, market);
       return;
     }
     setStand(data);
@@ -293,20 +292,6 @@
           <div class="grid">${tiles}</div>
         </section>
       </div>`;
-    rememberCard("SPX", 1, { name: idx.name, price: idx.price, pct: idx.pct, sectors: data.sectors }, data);
-  }
-
-  function rememberCard(ix, tf, market) {
-    const tiles = (market.sectors || []).map((s) => ({
-      name: s.name,
-      pct: s.pct == null ? "–" : dePct(s.pct),
-      color: s.pct == null ? "#9aa3ad" : window.MTS.cardColor(s.pct),
-    }));
-    window.__mtsSectors = {
-      title: `Sektoren · ${market.name || ix}`,
-      subtitle: `${window.MTS ? window.MTS.periodName(tf) : "Tag"} · ${new Date().toLocaleDateString("de-DE")}`,
-      tiles,
-    };
   }
 
   function showError(msg) {
@@ -342,16 +327,5 @@
       latest = e.detail.data;
       render(latest);
     }
-  });
-  document.addEventListener("click", async (e) => {
-    if (!e.target.closest("[data-export]") || !window.__mtsSectors) return;
-    const btn = e.target.closest("[data-export]");
-    btn.disabled = true;
-    try {
-      await window.MTS.saveCard({ kind: "sectors", ...window.__mtsSectors, filename: "mts-sektoren.png" });
-    } catch (err) {
-      console.error(err);
-    }
-    btn.disabled = false;
   });
 })();

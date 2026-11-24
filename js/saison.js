@@ -97,11 +97,6 @@
     return `background:rgba(${rgb},${a.toFixed(2)})`;
   }
 
-  function cardColor(v) {
-    if (v == null || Number.isNaN(v)) return "#9aa3ad";
-    return v >= 0 ? "#2cff8a" : "#ff3b5c";
-  }
-
   function cellHtml(v, sub) {
     if (v == null || Number.isNaN(v)) return `<td class="sais-cell muted">–</td>`;
     return `<td class="sais-cell" style="${heatStyle(v)}"><strong>${dePct(v)}</strong>${sub ? `<span>${sub}</span>` : ""}</td>`;
@@ -183,7 +178,6 @@
       <div class="tool-row">
         <button type="button" class="chip${state.sort === "aktuell" ? " is-on" : ""}" data-sort="aktuell">Sortierung Aktuell</button>
         <button type="button" class="chip${state.sort === "y20" ? " is-on" : ""}" data-sort="y20">Sortierung Ø 20 J.</button>
-        <button type="button" class="chip" data-export="1">TikTok-Bild speichern</button>
       </div>
       <h2>Monat</h2>
       <div class="chip-row ix-scroll">${months}</div>
@@ -191,31 +185,9 @@
       <h2>Quartal</h2>
       <div class="chip-row">${quarters}</div>
       ${table(`Q${state.quarter}`, quarterRows)}`;
-    window.__mtsSaison = {
-      title: "Saison-Statistik",
-      subtitle: `${MONTHS[state.month - 1]} · Q${state.quarter}`,
-      monthTitle: MONTHS[state.month - 1],
-      quarterTitle: `Q${state.quarter}`,
-      monthRows: monthRows.map(cardRow),
-      quarterRows: quarterRows.map(cardRow),
-    };
   }
 
-  function cardRow(row) {
-    const cell = (v, sub) => ({ value: v == null ? "–" : dePct(v), sub: sub || "", color: cardColor(v) });
-    return {
-      name: row.name,
-      cells: [
-        cell(row.aktuell),
-        cell(row.last),
-        cell(row.s5 && row.s5.avg, row.s5 ? `${row.s5.beat}/${row.s5.n}` : ""),
-        cell(row.s10 && row.s10.avg, row.s10 ? `${row.s10.beat}/${row.s10.n}` : ""),
-        cell(row.s20 && row.s20.avg, row.s20 ? `${row.s20.beat}/${row.s20.n}${row.s20.short ? " n<20" : ""}` : ""),
-      ],
-    };
-  }
-
-  document.addEventListener("click", async (e) => {
+  document.addEventListener("click", (e) => {
     const month = e.target.closest("[data-month]");
     const quarter = e.target.closest("[data-quarter]");
     const sort = e.target.closest("[data-sort]");
@@ -230,17 +202,7 @@
     const row = e.target.closest("[data-sector]");
     if (row) {
       location.href = `sektor.html?ix=SPX&s=${encodeURIComponent(row.dataset.sector)}`;
-      return;
     }
-    if (!e.target.closest("[data-export]") || !window.__mtsSaison) return;
-    const btn = e.target.closest("[data-export]");
-    btn.disabled = true;
-    try {
-      await window.MTS.saveCard({ kind: "saison", ...window.__mtsSaison, filename: "mts-saison.png" });
-    } catch (err) {
-      console.error(err);
-    }
-    btn.disabled = false;
   });
 
   async function start() {

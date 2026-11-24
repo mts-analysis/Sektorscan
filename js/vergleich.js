@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const { $, deNum, dePct, pctColor, escapeHtml, setStand, loadJSON, tfSwitcher, exportButton, timeframe, periodName, returns, exchanges, INDEX_EXCHANGE, SECTORS } = window.MTS;
+  const { $, deNum, dePct, escapeHtml, setStand, loadJSON, tfSwitcher, timeframe, periodName, returns, exchanges, INDEX_EXCHANGE, SECTORS } = window.MTS;
   let sectors = null;
   let stocks = null;
   let pack = null;
@@ -53,7 +53,6 @@
   function render() {
     const tf = timeframe();
     const status = Object.fromEntries(exchanges().map((ex) => [ex.name, ex.state]));
-    const cards = [];
     const html = (sectors.markets || []).map((market) => {
       const pct = indexPct(market.id, market);
       const moves = sectorMoves(market.id, market).slice().sort((a, b) => b.pct - a.pct);
@@ -65,16 +64,6 @@
       const state = status[ex] || "geschlossen";
       const cls = state === "offen" ? "is-open" : state === "Mittagspause" ? "is-lunch" : "is-closed";
       const session = deDate(market.stock_session || market.session_date || (baro && baro.session_date));
-      cards.push({
-        name: market.name,
-        level: market.price == null ? "–" : deNum(market.price),
-        pct: pct == null ? "–" : dePct(pct),
-        color: pct == null ? "#9aa3ad" : window.MTS.cardColor(pct),
-        baro: baro ? `Barometer ${baro.score}/100 · ${baro.zone_name}` : "Barometer nicht verfügbar",
-        detail: `Stark ${strong ? strong.name : "–"} · Schwach ${weak ? weak.name : "–"} · ${wide.up} / ${wide.down} von ${wide.n}`,
-        session: `Sitzung ${session || "–"}`,
-        market: `${ex} · ${state}`,
-      });
       return `<a class="card compare-card" href="index.html?ix=${encodeURIComponent(market.id)}">
         <div class="tf-head">
           <p class="kicker">${escapeHtml(market.name)}</p>
@@ -89,29 +78,10 @@
       </a>`;
     }).join("");
     $("#app").innerHTML = `
-      <div class="tool-row">${tfSwitcher()}${exportButton()}</div>
+      <div class="tool-row">${tfSwitcher()}</div>
       <p class="note">${tf === 1 ? "Änderung der letzten Sitzung." : "Änderung über die Handelstage der Tageshistorie, nach Börsenwert gewichtet."} Barometer: Tagesformel.</p>
       <div class="compare-wrap">${html}</div>`;
-    window.__mtsCompare = { tf, cards };
   }
-
-  document.addEventListener("click", async (e) => {
-    if (!e.target.closest("[data-export]") || !window.__mtsCompare) return;
-    const btn = e.target.closest("[data-export]");
-    btn.disabled = true;
-    try {
-      await window.MTS.saveCard({
-        kind: "compare",
-        title: "Index-Vergleich",
-        subtitle: `${periodName(window.__mtsCompare.tf)} · ${new Date().toLocaleDateString("de-DE")}`,
-        cards: window.__mtsCompare.cards,
-        filename: "mts-vergleich.png",
-      });
-    } catch (err) {
-      console.error(err);
-    }
-    btn.disabled = false;
-  });
 
   async function start() {
     try {

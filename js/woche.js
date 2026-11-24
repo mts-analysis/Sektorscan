@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const { $, dePct, pctColor, escapeHtml, setStand, loadJSON, indexSwitch, pageIndex, syncTabs, indexName, exportButton } = window.MTS;
+  const { $, dePct, pctColor, escapeHtml, setStand, loadJSON, indexSwitch, pageIndex, syncTabs, indexName } = window.MTS;
   const H = window.MTS.history;
   let stocks = null;
   let series = null;
@@ -39,38 +39,10 @@
     const previous = weeks.previous ? H.weighted(series, rows, weeks.previous.anchor, weeks.previous.end) : null;
     $("#app").innerHTML = `
       ${indexSwitch(ix)}
-      <div class="tool-row">${exportButton()}</div>
       <p class="kicker">${escapeHtml(indexName(ix))}</p>
       ${current ? block("Diese Woche", weeks.current, current) : `<p class="empty">Für diese Woche liegt noch kein Vergleich vor.</p>`}
       ${previous ? block("Vorwoche", weeks.previous, previous) : ""}`;
-    const shown = current || previous;
-    const info = current ? weeks.current : weeks.previous;
-    window.__mtsWeek = shown ? {
-      title: `Woche · ${indexName(ix)}`,
-      subtitle: info ? `${H.deYmd(info.start)} – ${H.deYmd(info.end)}` : "",
-      range: info ? `${H.deYmd(info.start)} – ${H.deYmd(info.end)}` : "",
-      indexPct: shown.indexPct == null ? "–" : dePct(shown.indexPct),
-      indexColor: shown.indexPct == null ? "#9aa3ad" : window.MTS.cardColor(shown.indexPct, 8),
-      rows: shown.sectors.map((s, i, arr) => ({
-        name: s.name,
-        pct: dePct(s.pct),
-        color: window.MTS.cardColor(s.pct, 8),
-        mark: arr.length > 1 && i === 0 ? "best" : arr.length > 1 && i === arr.length - 1 ? "worst" : "",
-      })),
-    } : null;
   }
-
-  document.addEventListener("click", async (e) => {
-    if (!e.target.closest("[data-export]") || !window.__mtsWeek) return;
-    const btn = e.target.closest("[data-export]");
-    btn.disabled = true;
-    try {
-      await window.MTS.saveCard({ kind: "week", ...window.__mtsWeek, filename: "mts-woche.png" });
-    } catch (err) {
-      console.error(err);
-    }
-    btn.disabled = false;
-  });
 
   async function start() {
     try {
