@@ -972,7 +972,18 @@ a.chip { text-decoration: none; display: inline-block; }
     grid-template-columns: 1.7rem minmax(0, 1.7fr) minmax(6.2rem, auto) 4.6rem 6.4rem;
   }
   .page.is-scanner .table-shell::after { height: 16px; }
-  .page.is-scanner .app-footer { margin: 2px 0 0; }
+  .page.is-scanner {
+    position: relative;
+  }
+  .page.is-scanner .app-footer {
+    position: absolute;
+    left: var(--pad);
+    bottom: calc(var(--tab-h) + var(--safe-b) + 8px);
+    width: calc(clamp(320px, 32vw, 360px) - 16px);
+    margin: 0;
+    text-align: left;
+    z-index: 5;
+  }
   .page.is-scanner .app-footer p { font-size: 0.68rem; }
   .page.is-scanner .main {
     display: grid;
@@ -1155,7 +1166,12 @@ a.tile, a.card { display: block; color: inherit; text-decoration: none; }
   font-weight: 700;
 }
 .stale-banner[hidden] { display: none; }
-.page.has-dots { padding-bottom: calc(var(--tab-h) + 18px + var(--safe-b)); }
+.page.has-dots { padding-bottom: calc(var(--tab-h) + 30px + var(--safe-b)); }
+@media (orientation: landscape) and (min-width: 900px) {
+  .page.is-scanner.has-dots {
+    padding-bottom: calc(var(--tab-h) + 28px + var(--safe-b));
+  }
+}
 .swipe-dots {
   position: fixed;
   z-index: 21;
