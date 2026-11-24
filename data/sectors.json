@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-11-24T08:20:57Z",
+  "updated_at_utc": "2026-11-24T09:39:08Z",
   "stand": {
     "unix": 1795470153,
     "iso_utc": "2026-11-23T21:42:33Z",
@@ -167,7 +167,7 @@
       "pct": 1.98,
       "session_date": "2026-11-23",
       "sparkline": [
-        55.46,
+        55.465,
         55.36,
         55.585,
         55.535,
@@ -451,7 +451,7 @@
         160.505,
         161.175,
         161.16,
-        161.0,
+        161.01,
         161.28,
         161.57,
         161.97,
@@ -986,8 +986,8 @@
       "id": "DAX",
       "name": "DAX 40",
       "ticker": "^GDAXI",
-      "price": 25320.05,
-      "pct": -0.07,
+      "price": 25194.94,
+      "pct": -0.56,
       "session_date": "2026-11-24",
       "sparkline": [
         25389.0996,
@@ -1049,42 +1049,42 @@
         26749.9492,
         25736.2402,
         24802.7793,
-        25320.0508
+        25194.9395
       ],
       "stand": {
-        "unix": 1795507556,
-        "iso_utc": "2026-11-24T08:05:56Z",
-        "et": "24.11.2026, 03:05 ET",
-        "mez": "24.11.2026, 09:05 MEZ",
-        "label": "24.11.2026, 03:05 ET / 09:05 MEZ"
+        "unix": 1795512247,
+        "iso_utc": "2026-11-24T09:24:07Z",
+        "et": "24.11.2026, 04:24 ET",
+        "mez": "24.11.2026, 10:24 MEZ",
+        "label": "24.11.2026, 04:24 ET / 10:24 MEZ"
       },
       "currency": "EUR",
       "price_currency": "EUR",
       "stock_session": "2026-11-24",
-      "up_stocks": 32,
-      "down_stocks": 8,
+      "up_stocks": 19,
+      "down_stocks": 21,
       "n_stocks": 40,
       "barometer": {
-        "score": 56,
+        "score": 46,
         "zone": 2,
         "zone_name": "Neutral",
-        "prev_score": 31,
-        "prev_zone_name": "Vorsicht",
+        "prev_score": 56,
+        "prev_zone_name": "Neutral",
         "components": {
-          "breadth": 85.0,
-          "trend": 64.3,
-          "momentum": 32.6,
-          "risk": 40.9
+          "breadth": 50.0,
+          "trend": 61.7,
+          "momentum": 29.9,
+          "risk": 43.0
         },
         "session_date": "2026-11-24",
-        "prev_session_date": "2026-11-20",
+        "prev_session_date": "2026-11-23",
         "source": "Yahoo Finance, gleiche Formel (Breite, Trend, Momentum, Risiko), Sektoren gleichgewichtet aus den Indexmitgliedern"
       },
       "sectors": [
         {
           "name": "Technologie",
           "n": 2,
-          "pct": 3.47,
+          "pct": -1.64,
           "sparkline": [
             100.0,
             98.49,
@@ -1114,13 +1114,14 @@
             93.68,
             92.06,
             87.68,
-            90.6
+            91.05,
+            89.58
           ]
         },
         {
           "name": "Finanzen",
           "n": 6,
-          "pct": 1.06,
+          "pct": -0.07,
           "sparkline": [
             100.0,
             100.4,
@@ -1150,13 +1151,14 @@
             105.67,
             104.66,
             103.65,
-            104.71
+            104.71,
+            104.67
           ]
         },
         {
           "name": "Gesundheit",
           "n": 6,
-          "pct": 0.82,
+          "pct": 0.11,
           "sparkline": [
             100.0,
             100.85,
@@ -1186,13 +1188,14 @@
             112.01,
             110.0,
             109.08,
+            109.8,
             109.9
           ]
         },
         {
           "name": "Zyklischer Konsum",
           "n": 6,
-          "pct": 1.19,
+          "pct": -0.62,
           "sparkline": [
             100.0,
             101.2,
@@ -1222,13 +1225,14 @@
             105.61,
             104.26,
             101.65,
-            102.91
+            103.19,
+            102.57
           ]
         },
         {
           "name": "Basiskonsum",
           "n": 2,
-          "pct": 0.23,
+          "pct": 0.45,
           "sparkline": [
             100.0,
             100.73,
@@ -1258,13 +1262,14 @@
             106.47,
             104.4,
             104.37,
-            104.63
+            104.36,
+            104.85
           ]
         },
         {
           "name": "Industrie",
           "n": 9,
-          "pct": 3.93,
+          "pct": -0.33,
           "sparkline": [
             100.0,
             100.04,
@@ -1294,13 +1299,14 @@
             96.73,
             95.99,
             92.32,
-            95.8
+            95.54,
+            95.19
           ]
         },
         {
           "name": "Grundstoffe",
           "n": 4,
-          "pct": 1.12,
+          "pct": -0.98,
           "sparkline": [
             100.0,
             100.92,
@@ -1330,13 +1336,14 @@
             102.87,
             101.94,
             100.22,
-            101.56
+            101.38,
+            100.48
           ]
         },
         {
           "name": "Versorger",
           "n": 2,
-          "pct": 1.19,
+          "pct": 0.05,
           "sparkline": [
             100.0,
             99.87,
@@ -1366,13 +1373,14 @@
             103.11,
             102.05,
             101.07,
-            102.17
+            102.43,
+            102.44
           ]
         },
         {
           "name": "Immobilien",
           "n": 1,
-          "pct": 0.62,
+          "pct": -0.09,
           "sparkline": [
             100.0,
             101.42,
@@ -1402,13 +1410,14 @@
             103.72,
             101.6,
             102.15,
-            102.78
+            103.24,
+            103.14
           ]
         },
         {
           "name": "Kommunikation",
           "n": 2,
-          "pct": 0.69,
+          "pct": 0.66,
           "sparkline": [
             100.0,
             104.34,
@@ -1438,12 +1447,13 @@
             112.14,
             110.99,
             106.81,
-            107.56
+            107.37,
+            108.09
           ]
         }
       ],
-      "up": 10,
-      "down": 0,
+      "up": 4,
+      "down": 6,
       "flat": 0
     },
     {
@@ -1461,7 +1471,7 @@
         "mez": "24.11.2026, 07:30 MEZ",
         "label": "24.11.2026, 01:30 ET / 07:30 MEZ"
       },
-      "currency": "KRW",
+      "currency": null,
       "price_currency": "KRW",
       "stock_session": "2026-11-24",
       "up_stocks": 191,
@@ -2389,8 +2399,8 @@
       "id": "UKX",
       "name": "FTSE 100",
       "ticker": "^FTSE",
-      "price": 10483.86,
-      "pct": 0.03,
+      "price": 10470.0,
+      "pct": -0.1,
       "session_date": "2026-11-24",
       "sparkline": [
         10491.4004,
@@ -2452,42 +2462,42 @@
         10902.5996,
         10551.2002,
         10346.2998,
-        10483.8604
+        10470.0
       ],
       "stand": {
-        "unix": 1795507557,
-        "iso_utc": "2026-11-24T08:05:57Z",
-        "et": "24.11.2026, 03:05 ET",
-        "mez": "24.11.2026, 09:05 MEZ",
-        "label": "24.11.2026, 03:05 ET / 09:05 MEZ"
+        "unix": 1795512247,
+        "iso_utc": "2026-11-24T09:24:07Z",
+        "et": "24.11.2026, 04:24 ET",
+        "mez": "24.11.2026, 10:24 MEZ",
+        "label": "24.11.2026, 04:24 ET / 10:24 MEZ"
       },
       "currency": "GBP",
       "price_currency": "GBP",
       "stock_session": "2026-11-24",
-      "up_stocks": 69,
-      "down_stocks": 29,
+      "up_stocks": 46,
+      "down_stocks": 51,
       "n_stocks": 100,
       "barometer": {
-        "score": 48,
+        "score": 44,
         "zone": 2,
         "zone_name": "Neutral",
-        "prev_score": 31,
-        "prev_zone_name": "Vorsicht",
+        "prev_score": 49,
+        "prev_zone_name": "Neutral",
         "components": {
-          "breadth": 59.1,
-          "trend": 57.6,
-          "momentum": 27.5,
-          "risk": 47.6
+          "breadth": 45.5,
+          "trend": 57.2,
+          "momentum": 26.5,
+          "risk": 47.2
         },
         "session_date": "2026-11-24",
-        "prev_session_date": "2026-11-20",
+        "prev_session_date": "2026-11-23",
         "source": "Yahoo Finance, gleiche Formel (Breite, Trend, Momentum, Risiko), Sektoren gleichgewichtet aus den Indexmitgliedern"
       },
       "sectors": [
         {
           "name": "Technologie",
           "n": 2,
-          "pct": 1.76,
+          "pct": -0.14,
           "sparkline": [
             100.0,
             100.03,
@@ -2517,13 +2527,14 @@
             94.58,
             96.08,
             93.68,
-            95.05
+            95.13,
+            95.04
           ]
         },
         {
           "name": "Finanzen",
           "n": 25,
-          "pct": 2.64,
+          "pct": -0.05,
           "sparkline": [
             100.0,
             100.68,
@@ -2553,13 +2564,14 @@
             99.43,
             98.57,
             96.16,
-            98.59
+            98.42,
+            98.39
           ]
         },
         {
           "name": "Gesundheit",
           "n": 5,
-          "pct": 0.88,
+          "pct": 0.6,
           "sparkline": [
             100.0,
             102.84,
@@ -2589,13 +2601,14 @@
             106.48,
             105.12,
             105.64,
-            106.6
+            106.09,
+            106.73
           ]
         },
         {
           "name": "Zyklischer Konsum",
           "n": 11,
-          "pct": 0.7,
+          "pct": -0.65,
           "sparkline": [
             100.0,
             102.55,
@@ -2625,13 +2638,14 @@
             109.0,
             107.53,
             106.11,
-            106.86
+            107.22,
+            106.5
           ]
         },
         {
           "name": "Basiskonsum",
           "n": 10,
-          "pct": 0.06,
+          "pct": 0.31,
           "sparkline": [
             100.0,
             101.91,
@@ -2661,13 +2675,14 @@
             104.79,
             102.59,
             103.63,
-            103.69
+            103.59,
+            103.92
           ]
         },
         {
           "name": "Industrie",
           "n": 18,
-          "pct": 3.03,
+          "pct": 0.54,
           "sparkline": [
             100.0,
             100.44,
@@ -2697,13 +2712,14 @@
             100.36,
             101.35,
             99.02,
-            101.98
+            101.14,
+            101.73
           ]
         },
         {
           "name": "Energie",
           "n": 4,
-          "pct": -0.47,
+          "pct": -0.23,
           "sparkline": [
             100.0,
             99.22,
@@ -2733,13 +2749,14 @@
             91.25,
             90.83,
             89.55,
-            89.13
+            89.51,
+            89.3
           ]
         },
         {
           "name": "Grundstoffe",
           "n": 7,
-          "pct": 0.96,
+          "pct": -3.42,
           "sparkline": [
             100.0,
             100.05,
@@ -2769,13 +2786,14 @@
             86.3,
             86.16,
             83.2,
-            84.01
+            86.09,
+            83.27
           ]
         },
         {
           "name": "Versorger",
           "n": 6,
-          "pct": 0.59,
+          "pct": 0.15,
           "sparkline": [
             100.0,
             100.93,
@@ -2805,13 +2823,14 @@
             102.19,
             100.24,
             99.91,
-            100.49
+            100.68,
+            100.89
           ]
         },
         {
           "name": "Immobilien",
           "n": 5,
-          "pct": -0.54,
+          "pct": -0.76,
           "sparkline": [
             100.0,
             100.99,
@@ -2841,13 +2860,14 @@
             103.92,
             102.58,
             102.04,
-            101.47
+            102.96,
+            102.16
           ]
         },
         {
           "name": "Kommunikation",
           "n": 7,
-          "pct": -1.14,
+          "pct": -0.17,
           "sparkline": [
             100.0,
             102.93,
@@ -2877,12 +2897,13 @@
             101.96,
             100.89,
             99.68,
-            98.57
+            98.83,
+            98.66
           ]
         }
       ],
-      "up": 8,
-      "down": 3,
+      "up": 4,
+      "down": 7,
       "flat": 0
     },
     {
@@ -3429,11 +3450,11 @@
         49595.3086
       ],
       "stand": {
-        "unix": 1795467600,
-        "iso_utc": "2026-11-23T21:00:00Z",
-        "et": "23.11.2026, 16:00 ET",
-        "mez": "23.11.2026, 22:00 MEZ",
-        "label": "23.11.2026, 16:00 ET / 22:00 MEZ"
+        "unix": 1795470159,
+        "iso_utc": "2026-11-23T21:42:39Z",
+        "et": "23.11.2026, 16:42 ET",
+        "mez": "23.11.2026, 22:42 MEZ",
+        "label": "23.11.2026, 16:42 ET / 22:42 MEZ"
       },
       "currency": "USD",
       "price_currency": "USD",
