@@ -5,3 +5,9 @@ venv/
 .DS_Store
 screenshots/
 *.tar.gz
+
+# secrets
+.env
+.env.*
+*.pem
+*.key
