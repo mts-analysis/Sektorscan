@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-11-27T19:43:04Z",
+  "updated_at_utc": "2026-11-27T20:36:32Z",
   "stand": {
     "unix": 1795804719,
     "iso_utc": "2026-11-27T18:38:39Z",
@@ -439,7 +439,7 @@
       "sparkline": [
         51.76,
         51.67,
-        51.69,
+        51.685,
         51.67,
         51.66,
         51.595,
@@ -1228,7 +1228,7 @@
         "mez": "27.11.2026, 12:05 MEZ",
         "label": "27.11.2026, 06:05 ET / 12:05 MEZ"
       },
-      "currency": null,
+      "currency": "KRW",
       "price_currency": "KRW",
       "stock_session": "2026-11-26",
       "up_stocks": 71,
